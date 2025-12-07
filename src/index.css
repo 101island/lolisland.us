@@ -1,0 +1,250 @@
+:root {
+  --bg0: #050510;
+  --bg1: #1d0b3a;
+  --bg2: #0b234a;
+  --glow: #7cfbff;
+  --accent: #ff7fd1;
+  --accent-2: #ffd166;
+  --glass: rgba(255, 255, 255, 0.08);
+  --text: #f7f7ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 20% 25%, rgba(255, 127, 209, 0.35), transparent 55%),
+    radial-gradient(120% 120% at 80% 35%, rgba(124, 251, 255, 0.25), transparent 55%),
+    radial-gradient(130% 140% at 50% 85%, rgba(255, 209, 102, 0.22), transparent 55%),
+    linear-gradient(150deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+  color: var(--text);
+  font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.02em;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.grain {
+  position: fixed;
+  inset: -30%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.16'/%3E%3C/svg%3E");
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: drift 20s linear infinite;
+  z-index: 1;
+}
+
+.halo {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.halo::before,
+.halo::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: conic-gradient(from 120deg, rgba(124, 251, 255, 0.25), rgba(255, 127, 209, 0.35), rgba(255, 209, 102, 0.2), rgba(124, 251, 255, 0.25));
+  filter: blur(120px);
+  opacity: 0.55;
+  animation: spin 32s linear infinite;
+}
+
+.halo::after {
+  animation-direction: reverse;
+  animation-duration: 46s;
+  opacity: 0.38;
+}
+
+.content {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.title-card {
+  padding: 1.8rem 2.4rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 30px 80px rgba(0, 0, 0, 0.35),
+    0 0 60px rgba(255, 127, 209, 0.28),
+    0 0 40px rgba(124, 251, 255, 0.24);
+  display: inline-block;
+  width: auto;
+  max-width: 80vw;
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: 6;
+}
+
+.title-card::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 18px;
+  background: linear-gradient(120deg, rgba(124, 251, 255, 0.06), rgba(255, 127, 209, 0.05), rgba(255, 209, 102, 0.05));
+  z-index: -1;
+}
+
+h1 {
+  margin: 0 0 0.35rem 0;
+  font-size: clamp(2rem, 7vw, 4.4rem);
+  line-height: 1;
+  letter-spacing: 0.07em;
+  text-transform: none;
+  color: var(--text);
+  text-shadow:
+    0 0 18px rgba(124, 251, 255, 0.55),
+    0 6px 22px rgba(0, 0, 0, 0.35);
+}
+
+.title-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.tagline {
+  margin: 0.4rem 0 0;
+  font-size: clamp(1rem, 2.4vw, 1.35rem);
+  color: rgba(247, 247, 255, 0.82);
+  letter-spacing: 0.06em;
+}
+
+#marble-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.marble {
+  position: absolute;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  cursor: default;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.2),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 0 30px rgba(124, 251, 255, 0.25);
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: filter 0.2s ease;
+}
+
+.marble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), transparent 40%),
+    radial-gradient(circle at 75% 80%, rgba(255, 255, 255, 0.08), transparent 50%);
+  mix-blend-mode: screen;
+}
+
+.marble[data-placeholder="true"] {
+  display: none;
+}
+
+.marble:hover {
+  filter: saturate(1.25) brightness(1.05);
+}
+
+.marble-label {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(5, 5, 16, 0.55);
+  color: #fefefe;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.marble.explode {
+  /* no-op; burst removed */
+}
+
+@keyframes burst {
+  0% { }
+  100% { }
+}
+
+.floating-text {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  body {
+    background:
+      radial-gradient(140% 140% at 25% 15%, rgba(255, 127, 209, 0.38), transparent 55%),
+      radial-gradient(130% 130% at 80% 25%, rgba(124, 251, 255, 0.28), transparent 55%),
+      radial-gradient(150% 150% at 50% 90%, rgba(255, 209, 102, 0.24), transparent 60%),
+      linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+  }
+
+  .title-card {
+    width: auto;
+    max-width: 82vw;
+    padding: 1.6rem 1.8rem;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 10vw, 3rem);
+    letter-spacing: 0.05em;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-2%, -2%, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}

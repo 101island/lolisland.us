@@ -1,0 +1,183 @@
+---
+import "../index.css";
+import titleImg from "../assets/title.png";
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>lolisland.us</title>
+    </head>
+    <body>
+        <div class="halo"></div>
+        <div class="grain"></div>
+        <div id="marble-field"></div>
+
+        <div class="content">
+            <div class="title-card">
+                <img class="title-img" src={titleImg.src} alt="lolisland.us" />
+            </div>
+        </div>
+
+        <script>
+            const userIds = [
+                { name: "awfufu", id: "***REMOVED***" },
+                { name: "白川", id: "***REMOVED***" },
+                { name: "iodinot", id: "***REMOVED***" },
+                { name: "Instreaman", id: "***REMOVED***" },
+                { name: "锂钐铪铌", id: "***REMOVED***" },
+                { name: "Usu171", id: "***REMOVED***" },
+                { name: "Jokey", id: "***REMOVED***" },
+                { name: "littlepear404", id: "***REMOVED***" },
+            ];
+
+            const avatarUrl = (id: any) =>
+                `http://q.qlogo.cn/headimg_dl?dst_uin=${id}&spec=640&img_type=jpg`;
+
+            const field = document.getElementById("marble-field");
+
+            if (field) {
+                type Marble = {
+                    id: string;
+                    node: HTMLDivElement;
+                    x: number;
+                    y: number;
+                    vx: number;
+                    vy: number;
+                    radius: number;
+                    mass: number;
+                };
+                const marbles: Marble[] = [];
+                let fieldWidth = window.innerWidth;
+                let fieldHeight = window.innerHeight;
+
+                const getMarbleSize = () => {
+                    const base = 192;
+                    const quarter =
+                        Math.min(window.innerWidth, window.innerHeight) * 0.25;
+                    const capped = Math.min(base, quarter || base);
+                    return Math.max(96, Math.floor(capped));
+                };
+
+                const createMarble = (entry: { name: any; id: any }) => {
+                    if (!entry?.id) return;
+                    const size = getMarbleSize();
+                    const radius = size / 2;
+                    const node = document.createElement("div");
+                    node.className = "marble";
+                    node.style.width = `${size}px`;
+                    node.style.height = `${size}px`;
+
+                    node.style.backgroundImage = `url("${avatarUrl(entry.id)}")`;
+
+                    const label = document.createElement("div");
+                    label.className = "marble-label";
+                    label.textContent = entry.name || entry.id;
+                    node.appendChild(label);
+
+                    const startX = Math.random() * (fieldWidth - size) + radius;
+                    const startY =
+                        Math.random() * (fieldHeight - size) + radius;
+                    const speed = 60 + Math.random() * 90;
+                    const angle = Math.random() * Math.PI * 2;
+
+                    const marble = {
+                        id: entry.id,
+                        node,
+                        x: startX,
+                        y: startY,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        radius,
+                        mass: radius * radius * 0.01 + 1,
+                    };
+
+                    field.appendChild(node);
+                    marbles.push(marble);
+                };
+
+                const resize = () => {
+                    fieldWidth = window.innerWidth;
+                    fieldHeight = window.innerHeight;
+                    // Optional: resize/reposition logic if strict adherence to original is needed,
+                    // but original just updated bounds.
+                };
+
+                window.addEventListener("resize", resize);
+
+                userIds.forEach((entry) => createMarble(entry));
+
+                const update = (dt: number) => {
+                    for (const m of marbles) {
+                        m.x += m.vx * dt;
+                        m.y += m.vy * dt;
+
+                        if (m.x - m.radius < 0 && m.vx < 0) {
+                            m.x = m.radius;
+                            m.vx *= -1;
+                        }
+                        if (m.x + m.radius > fieldWidth && m.vx > 0) {
+                            m.x = fieldWidth - m.radius;
+                            m.vx *= -1;
+                        }
+                        if (m.y - m.radius < 0 && m.vy < 0) {
+                            m.y = m.radius;
+                            m.vy *= -1;
+                        }
+                        if (m.y + m.radius > fieldHeight && m.vy > 0) {
+                            m.y = fieldHeight - m.radius;
+                            m.vy *= -1;
+                        }
+                    }
+
+                    for (let i = 0; i < marbles.length; i++) {
+                        for (let j = i + 1; j < marbles.length; j++) {
+                            const a = marbles[i];
+                            const b = marbles[j];
+                            const dx = b.x - a.x;
+                            const dy = b.y - a.y;
+                            const dist = Math.hypot(dx, dy) || 0.001;
+                            const minDist = a.radius + b.radius;
+                            if (dist < minDist) {
+                                const nx = dx / dist;
+                                const ny = dy / dist;
+                                const relativeVelocity =
+                                    (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+                                if (relativeVelocity < 0) {
+                                    const impulse =
+                                        (2 * relativeVelocity) /
+                                        (a.mass + b.mass);
+                                    a.vx -= impulse * b.mass * nx;
+                                    a.vy -= impulse * b.mass * ny;
+                                    b.vx += impulse * a.mass * nx;
+                                    b.vy += impulse * a.mass * ny;
+                                }
+                                const overlap = minDist - dist + 0.5;
+                                a.x -= nx * overlap * 0.5;
+                                a.y -= ny * overlap * 0.5;
+                                b.x += nx * overlap * 0.5;
+                                b.y += ny * overlap * 0.5;
+                            }
+                        }
+                    }
+
+                    for (const m of marbles) {
+                        m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
+                    }
+                };
+
+                let last = performance.now();
+                const loop = (now: number) => {
+                    const dt = (now - last) / 1000;
+                    last = now;
+                    update(Math.min(dt, 0.05));
+                    requestAnimationFrame(loop);
+                };
+
+                requestAnimationFrame(loop);
+            }
+        </script>
+    </body>
+</html>

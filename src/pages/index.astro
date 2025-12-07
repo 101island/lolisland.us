@@ -26,27 +26,24 @@ import titleImg from "../assets/title.png";
                 {
                     name: "awfufu",
                     id: "***REMOVED***",
-                    link: "https://example.com",
+                    link: "https://awfufu.com",
                 },
                 {
                     name: "白川",
                     id: "***REMOVED***",
-                    link: "https://example.com",
                 },
                 {
                     name: "iodinot",
                     id: "***REMOVED***",
-                    link: "https://example.com",
                 },
                 {
                     name: "Instreaman",
                     id: "***REMOVED***",
-                    link: "https://example.com",
+                    link: "https://instreaman.cc",
                 },
                 {
                     name: "锂钐铪铌",
                     id: "***REMOVED***",
-                    link: "https://example.com",
                 },
                 {
                     name: "Usu171",
@@ -56,16 +53,15 @@ import titleImg from "../assets/title.png";
                 {
                     name: "Jokey",
                     id: "***REMOVED***",
-                    link: "https://example.com",
                 },
                 {
                     name: "littlepear404",
                     id: "***REMOVED***",
-                    link: "https://example.com",
+                    link: "https://www.zhihu.com/profile/littlepear-92",
                 },
             ];
 
-            const avatarUrl = (id: any) =>
+            const avatarUrl = (id: string) =>
                 `http://q.qlogo.cn/headimg_dl?dst_uin=${id}&spec=640&img_type=jpg`;
 
             const field = document.getElementById("marble-field");
@@ -94,9 +90,9 @@ import titleImg from "../assets/title.png";
                 };
 
                 const createMarble = (entry: {
-                    name: any;
-                    id: any;
-                    link: any;
+                    name: string;
+                    id: string;
+                    link?: string;
                 }) => {
                     if (!entry?.id) return;
                     const size = getMarbleSize();
@@ -105,7 +101,14 @@ import titleImg from "../assets/title.png";
                     node.className = "marble";
                     node.style.width = `${size}px`;
                     node.style.height = `${size}px`;
-                    node.href = entry.link;
+
+                    if (entry.link) {
+                        node.href = entry.link;
+                        node.target = "_blank";
+                    } else {
+                        node.removeAttribute("href");
+                        node.style.cursor = "default";
+                    }
 
                     node.style.backgroundImage = `url("${avatarUrl(entry.id)}")`;
 
@@ -138,8 +141,6 @@ import titleImg from "../assets/title.png";
                 const resize = () => {
                     fieldWidth = window.innerWidth;
                     fieldHeight = window.innerHeight;
-                    // Optional: resize/reposition logic if strict adherence to original is needed,
-                    // but original just updated bounds.
                 };
 
                 window.addEventListener("resize", resize);

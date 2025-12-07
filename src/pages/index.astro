@@ -23,14 +23,46 @@ import titleImg from "../assets/title.png";
 
         <script>
             const userIds = [
-                { name: "awfufu", id: "***REMOVED***", link: "https://example.com" },
-                { name: "白川", id: "***REMOVED***", link: "https://example.com" },
-                { name: "iodinot", id: "***REMOVED***", link: "https://example.com" },
-                { name: "Instreaman", id: "***REMOVED***", link: "https://example.com" },
-                { name: "锂钐铪铌", id: "***REMOVED***", link: "https://example.com" },
-                { name: "Usu171", id: "***REMOVED***", link: "https://usu171.uk" },
-                { name: "Jokey", id: "***REMOVED***", link: "https://example.com" },
-                { name: "littlepear404", id: "***REMOVED***", link: "https://example.com" },
+                {
+                    name: "awfufu",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
+                {
+                    name: "白川",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
+                {
+                    name: "iodinot",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
+                {
+                    name: "Instreaman",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
+                {
+                    name: "锂钐铪铌",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
+                {
+                    name: "Usu171",
+                    id: "***REMOVED***",
+                    link: "https://usu171.uk",
+                },
+                {
+                    name: "Jokey",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
+                {
+                    name: "littlepear404",
+                    id: "***REMOVED***",
+                    link: "https://example.com",
+                },
             ];
 
             const avatarUrl = (id: any) =>
@@ -41,7 +73,7 @@ import titleImg from "../assets/title.png";
             if (field) {
                 type Marble = {
                     id: string;
-                    node: HTMLDivElement;
+                    node: HTMLAnchorElement;
                     x: number;
                     y: number;
                     vx: number;
@@ -61,7 +93,11 @@ import titleImg from "../assets/title.png";
                     return Math.max(96, Math.floor(capped));
                 };
 
-                const createMarble = (entry: { name: any; id: any; link: any }) => {
+                const createMarble = (entry: {
+                    name: any;
+                    id: any;
+                    link: any;
+                }) => {
                     if (!entry?.id) return;
                     const size = getMarbleSize();
                     const radius = size / 2;
@@ -69,7 +105,7 @@ import titleImg from "../assets/title.png";
                     node.className = "marble";
                     node.style.width = `${size}px`;
                     node.style.height = `${size}px`;
-                    node.href = entry.link
+                    node.href = entry.link;
 
                     node.style.backgroundImage = `url("${avatarUrl(entry.id)}")`;
 

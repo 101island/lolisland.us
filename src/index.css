@@ -98,8 +98,8 @@ body {
 .title-card::after {
   content: "";
   position: absolute;
-  inset: 12px;
-  border-radius: 18px;
+  inset: 0;
+  border-radius: 22px;
   background: linear-gradient(120deg, rgba(124, 251, 255, 0.06), rgba(255, 127, 209, 0.05), rgba(255, 209, 102, 0.05));
   z-index: -1;
 }

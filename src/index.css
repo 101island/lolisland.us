@@ -181,11 +181,11 @@ h1 {
 
 .marble-label {
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 0px;
+  right: 0px;
   bottom: 8px;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: 0px;
   background: rgba(5, 5, 16, 0.55);
   color: #fefefe;
   font-size: 0.8rem;

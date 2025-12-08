@@ -2,10 +2,7 @@
   --bg0: #050510;
   --bg1: #1d0b3a;
   --bg2: #0b234a;
-  --glow: #7cfbff;
-  --accent: #ff7fd1;
-  --accent-2: #ffd166;
-  --glass: rgba(255, 255, 255, 0.08);
+
   --text: #f7f7ff;
 }
 
@@ -30,10 +27,7 @@ body {
   background-size: cover;
 }
 
-#root {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
+
 
 .grain {
   position: fixed;
@@ -142,12 +136,13 @@ h1 {
   inset: 0;
   overflow: hidden;
   z-index: 2;
-  /* pointer-events: none; */
 }
 
 .marble {
   position: absolute;
   border-radius: 50%;
+  mask-image: radial-gradient(white, black);
+  isolation: isolate;
   background-size: cover;
   background-position: center;
   cursor: pointer;
@@ -158,6 +153,7 @@ h1 {
   backdrop-filter: blur(4px);
   overflow: hidden;
   transform: translate3d(0, 0, 0);
+  will-change: transform;
   transition: filter 0.2s ease;
 }
 
@@ -171,9 +167,7 @@ h1 {
   mix-blend-mode: screen;
 }
 
-.marble[data-placeholder="true"] {
-  display: none;
-}
+
 
 .marble:hover {
   filter: saturate(1.25) brightness(1.05);
@@ -181,11 +175,11 @@ h1 {
 
 .marble-label {
   position: absolute;
-  left: 0px;
-  right: 0px;
+  left: 0;
+  right: 0;
   bottom: 8px;
   padding: 4px 8px;
-  border-radius: 0px;
+  border-radius: 0;
   background: rgba(5, 5, 16, 0.55);
   color: #fefefe;
   font-size: 0.8rem;
@@ -197,18 +191,7 @@ h1 {
   pointer-events: none;
 }
 
-.marble.explode {
-  /* no-op; burst removed */
-}
 
-@keyframes burst {
-  0% { }
-  100% { }
-}
-
-.floating-text {
-  display: none;
-}
 
 @media (max-width: 720px) {
   body {
@@ -219,7 +202,6 @@ h1 {
       linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
     background-repeat: no-repeat;
     background-size: cover;
-    background-attachment: fixed;
   }
 
   .title-card {
@@ -244,9 +226,11 @@ h1 {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
   }
+
   50% {
     transform: translate3d(-2%, -2%, 0) scale(1.02);
   }
+
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }

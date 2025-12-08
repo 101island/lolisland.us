@@ -52,6 +52,8 @@ import titleImg from "../assets/title.png";
     height: 32px;
     width: auto;
     object-fit: contain;
+    opacity: 0;
+    transition: opacity 1s ease;
   }
 
   .github-link {
@@ -73,3 +75,20 @@ import titleImg from "../assets/title.png";
     fill: currentColor;
   }
 </style>
+
+<script>
+  const navTitle = document.querySelector(".nav-title") as HTMLImageElement;
+  if (navTitle) {
+    const reveal = () => {
+      setTimeout(() => {
+        navTitle.style.opacity = "1";
+      }, 50);
+    };
+
+    if (navTitle.complete) {
+      reveal();
+    } else {
+      navTitle.addEventListener("load", reveal);
+    }
+  }
+</script>

@@ -199,7 +199,7 @@ h1 {
 
 .marble.explode {
   /* no-op; burst removed */
-  }
+}
 
 @keyframes burst {
   0% { }

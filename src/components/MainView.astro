@@ -1,5 +1,5 @@
 ---
-import titleImg from "../assets/title.png";
+import titleSvg from "../assets/title.svg?raw";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
@@ -12,14 +12,16 @@ import Particles from "./Particles.astro";
 
 <div class="content">
   <div class="title-card">
-    <img class="title-img" src={titleImg.src} alt="lolisland.us" />
+    <div class="title-svg-container" set:html={titleSvg} />
   </div>
 </div>
 
 <script>
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
-  const titleImg = document.querySelector(".title-img") as HTMLImageElement;
+  const titleImg = document.querySelector(
+    ".title-svg-container svg",
+  ) as HTMLElement;
 
   if (titleImg && titleCard && navbar) {
     const reveal = () => {
@@ -29,11 +31,7 @@ import Particles from "./Particles.astro";
       });
     };
 
-    if (titleImg.complete) {
-      reveal();
-    } else {
-      titleImg.addEventListener("load", reveal);
-    }
+    reveal();
   }
 
   const userIds = [
@@ -391,12 +389,17 @@ import Particles from "./Particles.astro";
       0 6px 22px rgba(0, 0, 0, 0.35);
   }
 
-  .title-img {
+  .title-svg-container {
     display: block;
     width: 100%;
     max-width: 100%;
     height: auto;
-    object-fit: contain;
+  }
+
+  .title-svg-container :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .tagline {

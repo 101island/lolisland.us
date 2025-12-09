@@ -216,23 +216,6 @@ import Particles from "./Particles.astro";
       for (const m of marbles) {
         m.x += m.vx * dt;
         m.y += m.vy * dt;
-
-        if (m.x - m.radius < 0 && m.vx < 0) {
-          m.x = m.radius;
-          m.vx *= -1;
-        }
-        if (m.x + m.radius > fieldWidth && m.vx > 0) {
-          m.x = fieldWidth - m.radius;
-          m.vx *= -1;
-        }
-        if (m.y - m.radius < 0 && m.vy < 0) {
-          m.y = m.radius;
-          m.vy *= -1;
-        }
-        if (m.y + m.radius > fieldHeight && m.vy > 0) {
-          m.y = fieldHeight - m.radius;
-          m.vy *= -1;
-        }
       }
 
       for (let i = 0; i < marbles.length; i++) {
@@ -264,6 +247,23 @@ import Particles from "./Particles.astro";
       }
 
       for (const m of marbles) {
+        if (m.x - m.radius < 0) {
+          m.x = m.radius;
+          if (m.vx < 0) m.vx *= -1;
+        }
+        if (m.x + m.radius > fieldWidth) {
+          m.x = fieldWidth - m.radius;
+          if (m.vx > 0) m.vx *= -1;
+        }
+        if (m.y - m.radius < 0) {
+          m.y = m.radius;
+          if (m.vy < 0) m.vy *= -1;
+        }
+        if (m.y + m.radius > fieldHeight) {
+          m.y = fieldHeight - m.radius;
+          if (m.vy > 0) m.vy *= -1;
+        }
+
         m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
       }
     };

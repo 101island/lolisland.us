@@ -1,5 +1,5 @@
 ---
-import titleImg from "../assets/title.png";
+import titleSvg from "../assets/title.svg?raw";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
@@ -12,14 +12,16 @@ import Particles from "./Particles.astro";
 
 <div class="content">
   <div class="title-card">
-    <img class="title-img" src={titleImg.src} alt="lolisland.us" />
+    <div class="title-svg-container" set:html={titleSvg} />
   </div>
 </div>
 
 <script>
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
-  const titleImg = document.querySelector(".title-img") as HTMLImageElement;
+  const titleImg = document.querySelector(
+    ".title-svg-container svg",
+  ) as HTMLElement;
 
   if (titleImg && titleCard && navbar) {
     const reveal = () => {
@@ -29,91 +31,8 @@ import Particles from "./Particles.astro";
       });
     };
 
-    if (titleImg.complete) {
-      reveal();
-    } else {
-      titleImg.addEventListener("load", reveal);
-    }
+    reveal();
   }
-
-  const userIds = [
-    {
-      name: "awfufu",
-      id: "9f3118e7",
-      link: "https://awfufu.com",
-    },
-    {
-      name: "白川",
-      id: "2318489a",
-    },
-    {
-      name: "iodinot",
-      id: "88982c98",
-    },
-    {
-      name: "Instreaman",
-      id: "c6eff229",
-      link: "https://instreaman.cc",
-    },
-    {
-      name: "锂钐铪铌",
-      id: "b4550eed",
-    },
-    {
-      name: "Usu171",
-      id: "f788ee3f",
-      link: "https://usu171.uk",
-    },
-    {
-      name: "Jokey",
-      id: "8c028d9e",
-    },
-    {
-      name: "littlepear404",
-      id: "74506198",
-      link: "https://www.zhihu.com/profile/littlepear-92",
-    },
-    {
-      name: "cclvi256",
-      id: "15f29ac5",
-      link: "https://cclvi.cc",
-    },
-    {
-      name: "lavacreeper",
-      id: "8cc5c241",
-      link: "https://lavacreeper.net",
-    },
-    {
-      name: "jjjjjjax",
-      id: "a5d31c34",
-    },
-    {
-      name: "Sube",
-      id: "e057b0d8",
-      link: "https://sube.top",
-    },
-    {
-      name: "Tab",
-      id: "f24bde40",
-    },
-    {
-      name: "旅立ちの風",
-      id: "fcc505c5",
-    },
-    {
-      name: "双葉橘",
-      id: "90d84a1c",
-      link: "https://syju.org",
-    },
-    {
-      name: "伊芙",
-      id: "12657423",
-    },
-    {
-      name: "M3mori7",
-      id: "4ae16c5a",
-    },
-  ];
 
   const avatarUrl = (id: string) => `https://avatar.awfufu.com/qq/${id}`;
 
@@ -210,29 +129,17 @@ import Particles from "./Particles.astro";
 
     window.addEventListener("resize", resize);
 
-    userIds.forEach((entry) => createMarble(entry));
+    fetch("https://avatar.awfufu.com/users")
+      .then((res) => res.json())
+      .then((userIds: { name: string; id: string; link?: string }[]) => {
+        userIds.forEach((entry) => createMarble(entry));
+      })
+      .catch((err) => console.error("Failed to fetch users:", err));
 
     const update = (dt: number) => {
       for (const m of marbles) {
         m.x += m.vx * dt;
         m.y += m.vy * dt;
-
-        if (m.x - m.radius < 0 && m.vx < 0) {
-          m.x = m.radius;
-          m.vx *= -1;
-        }
-        if (m.x + m.radius > fieldWidth && m.vx > 0) {
-          m.x = fieldWidth - m.radius;
-          m.vx *= -1;
-        }
-        if (m.y - m.radius < 0 && m.vy < 0) {
-          m.y = m.radius;
-          m.vy *= -1;
-        }
-        if (m.y + m.radius > fieldHeight && m.vy > 0) {
-          m.y = fieldHeight - m.radius;
-          m.vy *= -1;
-        }
       }
 
       for (let i = 0; i < marbles.length; i++) {
@@ -264,6 +171,23 @@ import Particles from "./Particles.astro";
       }
 
       for (const m of marbles) {
+        if (m.x - m.radius < 0) {
+          m.x = m.radius;
+          if (m.vx < 0) m.vx *= -1;
+        }
+        if (m.x + m.radius > fieldWidth) {
+          m.x = fieldWidth - m.radius;
+          if (m.vx > 0) m.vx *= -1;
+        }
+        if (m.y - m.radius < 0) {
+          m.y = m.radius;
+          if (m.vy < 0) m.vy *= -1;
+        }
+        if (m.y + m.radius > fieldHeight) {
+          m.y = fieldHeight - m.radius;
+          if (m.vy > 0) m.vy *= -1;
+        }
+
         m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
       }
     };
@@ -391,12 +315,17 @@ import Particles from "./Particles.astro";
       0 6px 22px rgba(0, 0, 0, 0.35);
   }
 
-  .title-img {
+  .title-svg-container {
     display: block;
     width: 100%;
     max-width: 100%;
     height: auto;
-    object-fit: contain;
+  }
+
+  .title-svg-container :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .tagline {

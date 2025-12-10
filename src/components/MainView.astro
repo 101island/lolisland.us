@@ -19,16 +19,27 @@ import Footer from "./Footer.astro";
 </div>
 
 <script>
-  import { MarbleSystem } from "../utils/marbleSystem";
-  import { USER_DATA } from "../data/users";
-
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
+  const titleImg = document.querySelector(
+    ".title-svg-container svg",
+  ) as HTMLElement;
+
+  if (titleImg && titleCard && navbar) {
+    const reveal = () => {
+      requestAnimationFrame(() => {
+        titleCard.style.opacity = "1";
+        navbar.style.opacity = "1";
+      });
+    };
+
+    reveal();
+  }
 
   const avatarUrl = (id: string) => `https://avatar.awfufu.com/qq/${id}`;
 
-  // MarbleSys init
   const field = document.getElementById("marble-field");
+
   if (field) {
     type Marble = {
       id: string;
@@ -447,20 +458,6 @@ import Footer from "./Footer.astro";
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(6px);
     pointer-events: none;
-  }
-
-  /* 鼠标交互悬停高亮效果 */
-  :global(.marble-hover) {
-    box-shadow:
-      inset -3px -5px 12px rgba(0, 0, 0, 0.4),
-      inset 2px 4px 8px rgba(255, 255, 255, 0.45),
-      0 0 30px rgba(124, 251, 255, 0.8),
-      0 0 15px rgba(255, 127, 209, 0.6),
-      0 0 8px rgba(255, 255, 255, 0.9),
-      0 15px 35px rgba(0, 0, 0, 0.45);
-    filter: brightness(1.15) saturate(1.2);
-    z-index: 99;
-    transition: all 0.2s ease;
   }
 
   @media (max-width: 720px) {

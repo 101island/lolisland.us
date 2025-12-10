@@ -17,264 +17,37 @@ import Particles from "./Particles.astro";
 </div>
 
 <script>
+  import { MarbleSystem } from "../utils/marbleSystem";
+  import { USER_DATA } from "../data/users";
+
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
-  const titleImg = document.querySelector(
-    ".title-svg-container svg",
-  ) as HTMLElement;
 
-  if (titleImg && titleCard && navbar) {
-    const reveal = () => {
-      requestAnimationFrame(() => {
-        titleCard.style.opacity = "1";
-        navbar.style.opacity = "1";
-      });
-    };
-
-    reveal();
+  if (titleCard && navbar) {
+    requestAnimationFrame(() => {
+      titleCard.style.opacity = "1";
+      navbar.style.opacity = "1";
+    });
   }
 
-  const userIds = [
-    {
-      name: "awfufu",
-      id: "9f3118e7",
-      link: "https://awfufu.com",
-    },
-    {
-      name: "白川",
-      id: "2318489a",
-    },
-    {
-      name: "iodinot",
-      id: "88982c98",
-    },
-    {
-      name: "Instreaman",
-      id: "c6eff229",
-      link: "https://instreaman.cc",
-    },
-    {
-      name: "锂钐铪铌",
-      id: "b4550eed",
-    },
-    {
-      name: "Usu171",
-      id: "f788ee3f",
-      link: "https://usu171.uk",
-    },
-    {
-      name: "Jokey",
-      id: "8c028d9e",
-    },
-    {
-      name: "littlepear404",
-      id: "74506198",
-      link: "https://www.zhihu.com/profile/littlepear-92",
-    },
-    {
-      name: "cclvi256",
-      id: "15f29ac5",
-      link: "https://cclvi.cc",
-    },
-    {
-      name: "lavacreeper",
-      id: "8cc5c241",
-      link: "https://lavacreeper.net",
-    },
-    {
-      name: "jjjjjjax",
-      id: "a5d31c34",
-    },
-    {
-      name: "Sube",
-      id: "e057b0d8",
-      link: "https://sube.top",
-    },
-    {
-      name: "Tab",
-      id: "f24bde40",
-    },
-    {
-      name: "旅立ちの風",
-      id: "fcc505c5",
-    },
-    {
-      name: "双葉橘",
-      id: "90d84a1c",
-      link: "https://syju.org",
-    },
-    {
-      name: "伊芙",
-      id: "12657423",
-    },
-    {
-      name: "M3mori7",
-      id: "4ae16c5a",
-    },
-  ];
-
-  const avatarUrl = (id: string) => `https://avatar.awfufu.com/qq/${id}`;
-
+  // MarbleSys init
   const field = document.getElementById("marble-field");
-
   if (field) {
-    type Marble = {
-      id: string;
-      node: HTMLAnchorElement;
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      radius: number;
-      mass: number;
-    };
-    const marbles: Marble[] = [];
-    let fieldWidth = window.innerWidth;
-    let fieldHeight = window.innerHeight;
+    const marbleSystem = new MarbleSystem({
+      container: field,
+      fieldWidth: window.innerWidth,
+      fieldHeight: window.innerHeight,
+    });
 
-    const getMarbleSize = () => {
-      const base = 192;
-      const quarter = Math.min(window.innerWidth, window.innerHeight) * 0.25;
-      const capped = Math.min(base, quarter || base);
-      return Math.max(96, Math.floor(capped));
-    };
+    // Load Marbles then start animation
+    marbleSystem.addMarbles(USER_DATA).then(() => {
+      marbleSystem.start();
+    });
 
-    const createMarble = (entry: {
-      name: string;
-      id: string;
-      link?: string;
-    }) => {
-      if (!entry?.id) return;
-
-      const url = avatarUrl(entry.id);
-      const img = new Image();
-
-      img.onload = () => {
-        const size = getMarbleSize();
-        const radius = size / 2;
-        const node = document.createElement("a");
-        node.className = "marble";
-        node.style.opacity = "0"; // Start invisible
-        node.style.width = `${size}px`;
-        node.style.height = `${size}px`;
-
-        if (entry.link) {
-          node.href = entry.link;
-          node.target = "_blank";
-        } else {
-          node.removeAttribute("href");
-          node.style.cursor = "default";
-        }
-
-        node.style.backgroundImage = `url("${url}")`;
-
-        const label = document.createElement("div");
-        label.className = "marble-label";
-        label.textContent = entry.name || entry.id;
-        node.appendChild(label);
-
-        const startX = Math.random() * (fieldWidth - size) + radius;
-        const startY = Math.random() * (fieldHeight - size) + radius;
-        const speed = 60 + Math.random() * 90;
-        const angle = Math.random() * Math.PI * 2;
-
-        const marble = {
-          id: entry.id,
-          node,
-          x: startX,
-          y: startY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          radius,
-          mass: radius * radius * 0.01 + 1,
-        };
-
-        field.appendChild(node);
-        marbles.push(marble);
-
-        // Fade in
-        setTimeout(() => {
-          node.style.opacity = "1";
-        }, 100);
-      };
-
-      img.src = url;
-    };
-
-    const resize = () => {
-      fieldWidth = window.innerWidth;
-      fieldHeight = window.innerHeight;
-    };
-
-    window.addEventListener("resize", resize);
-
-    userIds.forEach((entry) => createMarble(entry));
-
-    const update = (dt: number) => {
-      for (const m of marbles) {
-        m.x += m.vx * dt;
-        m.y += m.vy * dt;
-      }
-
-      for (let i = 0; i < marbles.length; i++) {
-        for (let j = i + 1; j < marbles.length; j++) {
-          const a = marbles[i];
-          const b = marbles[j];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.hypot(dx, dy) || 0.001;
-          const minDist = a.radius + b.radius;
-          if (dist < minDist) {
-            const nx = dx / dist;
-            const ny = dy / dist;
-            const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-            if (relativeVelocity < 0) {
-              const impulse = (2 * relativeVelocity) / (a.mass + b.mass);
-              a.vx -= impulse * b.mass * nx;
-              a.vy -= impulse * b.mass * ny;
-              b.vx += impulse * a.mass * nx;
-              b.vy += impulse * a.mass * ny;
-            }
-            const overlap = minDist - dist + 0.5;
-            a.x -= nx * overlap * 0.5;
-            a.y -= ny * overlap * 0.5;
-            b.x += nx * overlap * 0.5;
-            b.y += ny * overlap * 0.5;
-          }
-        }
-      }
-
-      for (const m of marbles) {
-        if (m.x - m.radius < 0) {
-          m.x = m.radius;
-          if (m.vx < 0) m.vx *= -1;
-        }
-        if (m.x + m.radius > fieldWidth) {
-          m.x = fieldWidth - m.radius;
-          if (m.vx > 0) m.vx *= -1;
-        }
-        if (m.y - m.radius < 0) {
-          m.y = m.radius;
-          if (m.vy < 0) m.vy *= -1;
-        }
-        if (m.y + m.radius > fieldHeight) {
-          m.y = fieldHeight - m.radius;
-          if (m.vy > 0) m.vy *= -1;
-        }
-
-        m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
-      }
-    };
-
-    let last = performance.now();
-    const loop = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      update(Math.min(dt, 0.05));
-      requestAnimationFrame(loop);
-    };
-
-    requestAnimationFrame(loop);
+    // 开发环境：将系统实例暴露到全局，方便调试
+    if (import.meta.env.DEV) {
+      (window as any).marbleSystem = marbleSystem;
+    }
   }
 </script>
 
@@ -480,6 +253,20 @@ import Particles from "./Particles.astro";
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(6px);
     pointer-events: none;
+  }
+
+  /* 鼠标交互悬停高亮效果 */
+  :global(.marble-hover) {
+    box-shadow:
+      inset -3px -5px 12px rgba(0, 0, 0, 0.4),
+      inset 2px 4px 8px rgba(255, 255, 255, 0.45),
+      0 0 30px rgba(124, 251, 255, 0.8),
+      0 0 15px rgba(255, 127, 209, 0.6),
+      0 0 8px rgba(255, 255, 255, 0.9),
+      0 15px 35px rgba(0, 0, 0, 0.45);
+    filter: brightness(1.15) saturate(1.2);
+    z-index: 99;
+    transition: all 0.2s ease;
   }
 
   @media (max-width: 720px) {

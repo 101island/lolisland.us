@@ -2,6 +2,7 @@
 import titleSvg from "../assets/title.svg?raw";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
+import Footer from "./Footer.astro";
 ---
 
 <Navbar />
@@ -9,6 +10,7 @@ import Particles from "./Particles.astro";
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
+<Footer />
 
 <div class="content">
   <div class="title-card">
@@ -52,12 +54,13 @@ import Particles from "./Particles.astro";
     const marbles: Marble[] = [];
     let fieldWidth = window.innerWidth;
     let fieldHeight = window.innerHeight;
+    let zoomLevel = 1.0;
 
     const getMarbleSize = () => {
       const base = 192;
       const quarter = Math.min(window.innerWidth, window.innerHeight) * 0.25;
       const capped = Math.min(base, quarter || base);
-      return Math.max(96, Math.floor(capped));
+      return Math.max(96, Math.floor(capped)) * zoomLevel;
     };
 
     const createMarble = (entry: {
@@ -207,6 +210,36 @@ import Particles from "./Particles.astro";
     };
 
     requestAnimationFrame(loop);
+
+    const updateMarbleSize = () => {
+      const size = getMarbleSize();
+      const radius = size / 2;
+
+      for (const m of marbles) {
+        m.radius = radius;
+        m.node.style.width = `${size}px`;
+        m.node.style.height = `${size}px`;
+        // Recalculate mass if desired, but not strictly necessary for visual zoom
+        m.mass = radius * radius * 0.01 + 1;
+      }
+    };
+
+    const zoomInBtn = document.getElementById("zoom-in");
+    const zoomOutBtn = document.getElementById("zoom-out");
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener("click", () => {
+        zoomLevel = Math.min(zoomLevel + 0.1, 2.0); // Cap max zoom
+        updateMarbleSize();
+      });
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener("click", () => {
+        zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // Cap min zoom
+        updateMarbleSize();
+      });
+    }
   }
 </script>
 
@@ -350,8 +383,11 @@ import Particles from "./Particles.astro";
 
   :global(.marble-wrapper) {
     position: absolute;
-    will-change: transform;
-    transition: opacity 1s ease;
+    will-change: transform, width, height;
+    transition:
+      opacity 1s ease,
+      width 0.3s ease,
+      height 0.3s ease;
   }
 
   :global(.marble-wrapper:hover) {

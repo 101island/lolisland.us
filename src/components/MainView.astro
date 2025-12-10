@@ -2,6 +2,7 @@
 import titleSvg from "../assets/title.svg?raw";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
+import Footer from "./Footer.astro";
 ---
 
 <Navbar />
@@ -9,6 +10,7 @@ import Particles from "./Particles.astro";
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
+<Footer />
 
 <div class="content">
   <div class="title-card">
@@ -41,7 +43,7 @@ import Particles from "./Particles.astro";
   if (field) {
     type Marble = {
       id: string;
-      node: HTMLAnchorElement;
+      node: HTMLElement;
       x: number;
       y: number;
       vx: number;
@@ -52,12 +54,13 @@ import Particles from "./Particles.astro";
     const marbles: Marble[] = [];
     let fieldWidth = window.innerWidth;
     let fieldHeight = window.innerHeight;
+    let zoomLevel = 1.0;
 
     const getMarbleSize = () => {
       const base = 192;
       const quarter = Math.min(window.innerWidth, window.innerHeight) * 0.25;
       const capped = Math.min(base, quarter || base);
-      return Math.max(96, Math.floor(capped));
+      return Math.max(96, Math.floor(capped)) * zoomLevel;
     };
 
     const createMarble = (entry: {
@@ -73,11 +76,15 @@ import Particles from "./Particles.astro";
       img.onload = () => {
         const size = getMarbleSize();
         const radius = size / 2;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "marble-wrapper";
+        wrapper.style.width = `${size}px`;
+        wrapper.style.height = `${size}px`;
+        wrapper.style.opacity = "0"; // Start invisible
+
         const node = document.createElement("a");
         node.className = "marble";
-        node.style.opacity = "0"; // Start invisible
-        node.style.width = `${size}px`;
-        node.style.height = `${size}px`;
 
         if (entry.link) {
           node.href = entry.link;
@@ -94,6 +101,8 @@ import Particles from "./Particles.astro";
         label.textContent = entry.name || entry.id;
         node.appendChild(label);
 
+        wrapper.appendChild(node);
+
         const startX = Math.random() * (fieldWidth - size) + radius;
         const startY = Math.random() * (fieldHeight - size) + radius;
         const speed = 60 + Math.random() * 90;
@@ -101,7 +110,7 @@ import Particles from "./Particles.astro";
 
         const marble = {
           id: entry.id,
-          node,
+          node: wrapper,
           x: startX,
           y: startY,
           vx: Math.cos(angle) * speed,
@@ -110,12 +119,12 @@ import Particles from "./Particles.astro";
           mass: radius * radius * 0.01 + 1,
         };
 
-        field.appendChild(node);
+        field.appendChild(wrapper);
         marbles.push(marble);
 
         // Fade in
         setTimeout(() => {
-          node.style.opacity = "1";
+          wrapper.style.opacity = "1";
         }, 100);
       };
 
@@ -201,6 +210,36 @@ import Particles from "./Particles.astro";
     };
 
     requestAnimationFrame(loop);
+
+    const updateMarbleSize = () => {
+      const size = getMarbleSize();
+      const radius = size / 2;
+
+      for (const m of marbles) {
+        m.radius = radius;
+        m.node.style.width = `${size}px`;
+        m.node.style.height = `${size}px`;
+        // Recalculate mass if desired, but not strictly necessary for visual zoom
+        m.mass = radius * radius * 0.01 + 1;
+      }
+    };
+
+    const zoomInBtn = document.getElementById("zoom-in");
+    const zoomOutBtn = document.getElementById("zoom-out");
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener("click", () => {
+        zoomLevel = Math.min(zoomLevel + 0.1, 2.0); // Cap max zoom
+        updateMarbleSize();
+      });
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener("click", () => {
+        zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // Cap min zoom
+        updateMarbleSize();
+      });
+    }
   }
 </script>
 
@@ -342,8 +381,24 @@ import Particles from "./Particles.astro";
     z-index: 2;
   }
 
-  :global(.marble) {
+  :global(.marble-wrapper) {
     position: absolute;
+    will-change: transform, width, height;
+    transition:
+      opacity 1s ease,
+      width 0.3s ease,
+      height 0.3s ease;
+  }
+
+  :global(.marble-wrapper:hover) {
+    z-index: 10;
+  }
+
+  :global(.marble) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: relative;
     border-radius: 50%;
     isolation: isolate;
     background-size: cover;
@@ -359,9 +414,7 @@ import Particles from "./Particles.astro";
     overflow: hidden;
     transform: translate3d(0, 0, 0);
     will-change: transform;
-    transition:
-      transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-      opacity 1s ease;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
   :global(.marble::after) {
@@ -386,7 +439,6 @@ import Particles from "./Particles.astro";
       0 0 25px rgba(255, 255, 255, 0.65),
       0 0 8px rgba(255, 255, 255, 0.8),
       0 15px 35px rgba(0, 0, 0, 0.45);
-    z-index: 100;
     filter: brightness(1.05);
   }
 

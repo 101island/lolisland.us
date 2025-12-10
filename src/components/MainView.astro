@@ -2,6 +2,7 @@
 import titleSvg from "../assets/title.svg?raw";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
+import Footer from "./Footer.astro";
 ---
 
 <Navbar />
@@ -9,6 +10,7 @@ import Particles from "./Particles.astro";
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
+<Footer />
 
 <div class="content">
   <div class="title-card">
@@ -23,30 +25,209 @@ import Particles from "./Particles.astro";
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
 
-  if (titleCard && navbar) {
-    requestAnimationFrame(() => {
-      titleCard.style.opacity = "1";
-      navbar.style.opacity = "1";
-    });
-  }
+  const avatarUrl = (id: string) => `https://avatar.awfufu.com/qq/${id}`;
 
   // MarbleSys init
   const field = document.getElementById("marble-field");
   if (field) {
-    const marbleSystem = new MarbleSystem({
-      container: field,
-      fieldWidth: window.innerWidth,
-      fieldHeight: window.innerHeight,
-    });
+    type Marble = {
+      id: string;
+      node: HTMLElement;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+      mass: number;
+    };
+    const marbles: Marble[] = [];
+    let fieldWidth = window.innerWidth;
+    let fieldHeight = window.innerHeight;
+    let zoomLevel = 1.0;
 
-    // Load Marbles then start animation
-    marbleSystem.addMarbles(USER_DATA).then(() => {
-      marbleSystem.start();
-    });
+    const getMarbleSize = () => {
+      const base = 192;
+      const quarter = Math.min(window.innerWidth, window.innerHeight) * 0.25;
+      const capped = Math.min(base, quarter || base);
+      return Math.max(96, Math.floor(capped)) * zoomLevel;
+    };
 
-    // 开发环境：将系统实例暴露到全局，方便调试
-    if (import.meta.env.DEV) {
-      (window as any).marbleSystem = marbleSystem;
+    const createMarble = (entry: {
+      name: string;
+      id: string;
+      link?: string;
+    }) => {
+      if (!entry?.id) return;
+
+      const url = avatarUrl(entry.id);
+      const img = new Image();
+
+      img.onload = () => {
+        const size = getMarbleSize();
+        const radius = size / 2;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "marble-wrapper";
+        wrapper.style.width = `${size}px`;
+        wrapper.style.height = `${size}px`;
+        wrapper.style.opacity = "0"; // Start invisible
+
+        const node = document.createElement("a");
+        node.className = "marble";
+
+        if (entry.link) {
+          node.href = entry.link;
+          node.target = "_blank";
+        } else {
+          node.removeAttribute("href");
+          node.style.cursor = "default";
+        }
+
+        node.style.backgroundImage = `url("${url}")`;
+
+        const label = document.createElement("div");
+        label.className = "marble-label";
+        label.textContent = entry.name || entry.id;
+        node.appendChild(label);
+
+        wrapper.appendChild(node);
+
+        const startX = Math.random() * (fieldWidth - size) + radius;
+        const startY = Math.random() * (fieldHeight - size) + radius;
+        const speed = 60 + Math.random() * 90;
+        const angle = Math.random() * Math.PI * 2;
+
+        const marble = {
+          id: entry.id,
+          node: wrapper,
+          x: startX,
+          y: startY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius,
+          mass: radius * radius * 0.01 + 1,
+        };
+
+        field.appendChild(wrapper);
+        marbles.push(marble);
+
+        // Fade in
+        setTimeout(() => {
+          wrapper.style.opacity = "1";
+        }, 100);
+      };
+
+      img.src = url;
+    };
+
+    const resize = () => {
+      fieldWidth = window.innerWidth;
+      fieldHeight = window.innerHeight;
+    };
+
+    window.addEventListener("resize", resize);
+
+    fetch("https://avatar.awfufu.com/users")
+      .then((res) => res.json())
+      .then((userIds: { name: string; id: string; link?: string }[]) => {
+        userIds.forEach((entry) => createMarble(entry));
+      })
+      .catch((err) => console.error("Failed to fetch users:", err));
+
+    const update = (dt: number) => {
+      for (const m of marbles) {
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+      }
+
+      for (let i = 0; i < marbles.length; i++) {
+        for (let j = i + 1; j < marbles.length; j++) {
+          const a = marbles[i];
+          const b = marbles[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 0.001;
+          const minDist = a.radius + b.radius;
+          if (dist < minDist) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+            if (relativeVelocity < 0) {
+              const impulse = (2 * relativeVelocity) / (a.mass + b.mass);
+              a.vx -= impulse * b.mass * nx;
+              a.vy -= impulse * b.mass * ny;
+              b.vx += impulse * a.mass * nx;
+              b.vy += impulse * a.mass * ny;
+            }
+            const overlap = minDist - dist + 0.5;
+            a.x -= nx * overlap * 0.5;
+            a.y -= ny * overlap * 0.5;
+            b.x += nx * overlap * 0.5;
+            b.y += ny * overlap * 0.5;
+          }
+        }
+      }
+
+      for (const m of marbles) {
+        if (m.x - m.radius < 0) {
+          m.x = m.radius;
+          if (m.vx < 0) m.vx *= -1;
+        }
+        if (m.x + m.radius > fieldWidth) {
+          m.x = fieldWidth - m.radius;
+          if (m.vx > 0) m.vx *= -1;
+        }
+        if (m.y - m.radius < 0) {
+          m.y = m.radius;
+          if (m.vy < 0) m.vy *= -1;
+        }
+        if (m.y + m.radius > fieldHeight) {
+          m.y = fieldHeight - m.radius;
+          if (m.vy > 0) m.vy *= -1;
+        }
+
+        m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
+      }
+    };
+
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      update(Math.min(dt, 0.05));
+      requestAnimationFrame(loop);
+    };
+
+    requestAnimationFrame(loop);
+
+    const updateMarbleSize = () => {
+      const size = getMarbleSize();
+      const radius = size / 2;
+
+      for (const m of marbles) {
+        m.radius = radius;
+        m.node.style.width = `${size}px`;
+        m.node.style.height = `${size}px`;
+        // Recalculate mass if desired, but not strictly necessary for visual zoom
+        m.mass = radius * radius * 0.01 + 1;
+      }
+    };
+
+    const zoomInBtn = document.getElementById("zoom-in");
+    const zoomOutBtn = document.getElementById("zoom-out");
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener("click", () => {
+        zoomLevel = Math.min(zoomLevel + 0.1, 2.0); // Cap max zoom
+        updateMarbleSize();
+      });
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener("click", () => {
+        zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // Cap min zoom
+        updateMarbleSize();
+      });
     }
   }
 </script>
@@ -189,8 +370,24 @@ import Particles from "./Particles.astro";
     z-index: 2;
   }
 
-  :global(.marble) {
+  :global(.marble-wrapper) {
     position: absolute;
+    will-change: transform, width, height;
+    transition:
+      opacity 1s ease,
+      width 0.3s ease,
+      height 0.3s ease;
+  }
+
+  :global(.marble-wrapper:hover) {
+    z-index: 10;
+  }
+
+  :global(.marble) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: relative;
     border-radius: 50%;
     isolation: isolate;
     background-size: cover;
@@ -206,9 +403,7 @@ import Particles from "./Particles.astro";
     overflow: hidden;
     transform: translate3d(0, 0, 0);
     will-change: transform;
-    transition:
-      transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-      opacity 1s ease;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
   :global(.marble::after) {
@@ -233,7 +428,6 @@ import Particles from "./Particles.astro";
       0 0 25px rgba(255, 255, 255, 0.65),
       0 0 8px rgba(255, 255, 255, 0.8),
       0 15px 35px rgba(0, 0, 0, 0.45);
-    z-index: 100;
     filter: brightness(1.05);
   }
 

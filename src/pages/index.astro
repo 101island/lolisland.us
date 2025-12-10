@@ -1,261 +1,85 @@
 ---
-import "../index.css";
-import titleImg from "../assets/title.png";
+import MainView from "../components/MainView.astro";
 ---
 
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>lolisland.us</title>
-    </head>
-    <body>
-        <div class="halo"></div>
-        <div class="grain"></div>
-        <div id="marble-field"></div>
-
-        <div class="content">
-            <div class="title-card">
-                <img class="title-img" src={titleImg.src} alt="lolisland.us" />
-            </div>
-        </div>
-
-        <script>
-            const userIds = [
-                {
-                    name: "awfufu",
-                    id: "***REMOVED***",
-                    link: "https://awfufu.com",
-                },
-                {
-                    name: "白川",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "iodinot",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "Instreaman",
-                    id: "***REMOVED***",
-                    link: "https://instreaman.cc",
-                },
-                {
-                    name: "锂钐铪铌",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "Usu171",
-                    id: "***REMOVED***",
-                    link: "https://usu171.uk",
-                },
-                {
-                    name: "Jokey",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "littlepear404",
-                    id: "***REMOVED***",
-                    link: "https://www.zhihu.com/profile/littlepear-92",
-                },
-                {
-                    name: "cclvi256",
-                    id: "***REMOVED***",
-                    link: "https://cclvi.cc",
-                },
-                {
-                    name: "lavacreeper",
-                    id: "***REMOVED***",
-                    link: "https://lavacreeper.net",
-                },
-                {
-                    name: "jjjjjjax",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "Sube",
-                    id: "***REMOVED***",
-                    link: "https://sube.top",
-                },
-                {
-                    name: "Tab",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "旅立ちの風",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "双葉橘",
-                    id: "***REMOVED***",
-                    link: "https://syju.org",
-                },
-                {
-                    name: "伊芙",
-                    id: "***REMOVED***",
-                },
-                {
-                    name: "M3mori7",
-                    id: "***REMOVED***",
-                },
-            ];
-
-            const avatarUrl = (id: string) =>
-                `http://q.qlogo.cn/headimg_dl?dst_uin=${id}&spec=640&img_type=jpg`;
-
-            const field = document.getElementById("marble-field");
-
-            if (field) {
-                type Marble = {
-                    id: string;
-                    node: HTMLAnchorElement;
-                    x: number;
-                    y: number;
-                    vx: number;
-                    vy: number;
-                    radius: number;
-                    mass: number;
-                };
-                const marbles: Marble[] = [];
-                let fieldWidth = window.innerWidth;
-                let fieldHeight = window.innerHeight;
-
-                const getMarbleSize = () => {
-                    const base = 192;
-                    const quarter =
-                        Math.min(window.innerWidth, window.innerHeight) * 0.25;
-                    const capped = Math.min(base, quarter || base);
-                    return Math.max(96, Math.floor(capped));
-                };
-
-                const createMarble = (entry: {
-                    name: string;
-                    id: string;
-                    link?: string;
-                }) => {
-                    if (!entry?.id) return;
-                    const size = getMarbleSize();
-                    const radius = size / 2;
-                    const node = document.createElement("a");
-                    node.className = "marble";
-                    node.style.width = `${size}px`;
-                    node.style.height = `${size}px`;
-
-                    if (entry.link) {
-                        node.href = entry.link;
-                        node.target = "_blank";
-                    } else {
-                        node.removeAttribute("href");
-                        node.style.cursor = "default";
-                    }
-
-                    node.style.backgroundImage = `url("${avatarUrl(entry.id)}")`;
-
-                    const label = document.createElement("div");
-                    label.className = "marble-label";
-                    label.textContent = entry.name || entry.id;
-                    node.appendChild(label);
-
-                    const startX = Math.random() * (fieldWidth - size) + radius;
-                    const startY =
-                        Math.random() * (fieldHeight - size) + radius;
-                    const speed = 60 + Math.random() * 90;
-                    const angle = Math.random() * Math.PI * 2;
-
-                    const marble = {
-                        id: entry.id,
-                        node,
-                        x: startX,
-                        y: startY,
-                        vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed,
-                        radius,
-                        mass: radius * radius * 0.01 + 1,
-                    };
-
-                    field.appendChild(node);
-                    marbles.push(marble);
-                };
-
-                const resize = () => {
-                    fieldWidth = window.innerWidth;
-                    fieldHeight = window.innerHeight;
-                };
-
-                window.addEventListener("resize", resize);
-
-                userIds.forEach((entry) => createMarble(entry));
-
-                const update = (dt: number) => {
-                    for (const m of marbles) {
-                        m.x += m.vx * dt;
-                        m.y += m.vy * dt;
-
-                        if (m.x - m.radius < 0 && m.vx < 0) {
-                            m.x = m.radius;
-                            m.vx *= -1;
-                        }
-                        if (m.x + m.radius > fieldWidth && m.vx > 0) {
-                            m.x = fieldWidth - m.radius;
-                            m.vx *= -1;
-                        }
-                        if (m.y - m.radius < 0 && m.vy < 0) {
-                            m.y = m.radius;
-                            m.vy *= -1;
-                        }
-                        if (m.y + m.radius > fieldHeight && m.vy > 0) {
-                            m.y = fieldHeight - m.radius;
-                            m.vy *= -1;
-                        }
-                    }
-
-                    for (let i = 0; i < marbles.length; i++) {
-                        for (let j = i + 1; j < marbles.length; j++) {
-                            const a = marbles[i];
-                            const b = marbles[j];
-                            const dx = b.x - a.x;
-                            const dy = b.y - a.y;
-                            const dist = Math.hypot(dx, dy) || 0.001;
-                            const minDist = a.radius + b.radius;
-                            if (dist < minDist) {
-                                const nx = dx / dist;
-                                const ny = dy / dist;
-                                const relativeVelocity =
-                                    (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-                                if (relativeVelocity < 0) {
-                                    const impulse =
-                                        (2 * relativeVelocity) /
-                                        (a.mass + b.mass);
-                                    a.vx -= impulse * b.mass * nx;
-                                    a.vy -= impulse * b.mass * ny;
-                                    b.vx += impulse * a.mass * nx;
-                                    b.vy += impulse * a.mass * ny;
-                                }
-                                const overlap = minDist - dist + 0.5;
-                                a.x -= nx * overlap * 0.5;
-                                a.y -= ny * overlap * 0.5;
-                                b.x += nx * overlap * 0.5;
-                                b.y += ny * overlap * 0.5;
-                            }
-                        }
-                    }
-
-                    for (const m of marbles) {
-                        m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
-                    }
-                };
-
-                let last = performance.now();
-                const loop = (now: number) => {
-                    const dt = (now - last) / 1000;
-                    last = now;
-                    update(Math.min(dt, 0.05));
-                    requestAnimationFrame(loop);
-                };
-
-                requestAnimationFrame(loop);
-            }
-        </script>
-    </body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lolisland.us</title>
+  </head>
+  <body>
+    <MainView />
+  </body>
 </html>
+
+<style is:global>
+  :root {
+    --bg0: #050510;
+    --bg1: #1d0b3a;
+    --bg2: #0b234a;
+
+    --text: #f7f7ff;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: radial-gradient(
+        120% 120% at 20% 25%,
+        rgba(255, 127, 209, 0.35),
+        transparent 55%
+      ),
+      radial-gradient(
+        120% 120% at 80% 35%,
+        rgba(124, 251, 255, 0.25),
+        transparent 55%
+      ),
+      radial-gradient(
+        130% 140% at 50% 85%,
+        rgba(255, 209, 102, 0.22),
+        transparent 55%
+      ),
+      linear-gradient(150deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+    color: var(--text);
+    font-family:
+      "Space Grotesk",
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif;
+    letter-spacing: 0.02em;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  @media (max-width: 720px) {
+    body {
+      background: radial-gradient(
+          140% 140% at 25% 15%,
+          rgba(255, 127, 209, 0.38),
+          transparent 55%
+        ),
+        radial-gradient(
+          130% 130% at 80% 25%,
+          rgba(124, 251, 255, 0.28),
+          transparent 55%
+        ),
+        radial-gradient(
+          150% 150% at 50% 90%,
+          rgba(255, 209, 102, 0.24),
+          transparent 60%
+        ),
+        linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+  }
+</style>

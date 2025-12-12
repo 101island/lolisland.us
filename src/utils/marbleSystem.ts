@@ -67,6 +67,7 @@ export class MarbleSystem {
       minSpeed: MARBLE_CONFIG.physics.minSpeed,
       maxSpeed: MARBLE_CONFIG.physics.maxSpeed,
     });
+    this.physics.init();
 
     // MarbleFactory Init
     this.factory = new MarbleFactory(

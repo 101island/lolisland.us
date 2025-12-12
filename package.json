@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "build:wasm": "cd src/wasm/marble-physics && ~/.cargo/bin/wasm-pack build --target web",
+    "dev": "npm run build:wasm && astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "npm run build:wasm && astro build",
     "preview": "astro preview",
     "format": "biome format --write .",
     "lint": "biome lint --write .",

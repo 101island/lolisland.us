@@ -1,6 +1,4 @@
-/**
- * 统一导出
- */
+// Unified export
 
 export { MarbleSystem } from "./marbleSystem";
 export { MarblePhysics } from "./marblePhysics";

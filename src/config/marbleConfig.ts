@@ -1,48 +1,48 @@
 export interface UserEntry {
-	name: string;
-	id: string;
-	link?: string;
+  name: string;
+  id: string;
+  link?: string;
 }
 
 export const MARBLE_CONFIG = {
-	// 弹珠大小配置
-	size: {
-		base: 192,
-		min: 96,
-		maxScreenRatio: 0.25,
-	},
+  // Marble size configuration
+  size: {
+    base: 192,
+    min: 96,
+    maxScreenRatio: 0.25,
+  },
 
-	// 弹珠初始速度配置
-	speed: {
-		min: 60,
-		max: 150,
-	},
+  // Marble initial speed configuration
+  speed: {
+    min: 60,
+    max: 150,
+  },
 
-	// 物理参数
-	physics: {
-		massScale: 0.01,
-		massOffset: 1,
-		damping: 0.9985, // 空气阻力/阻尼系数 (0-1)
-		restitution: 0.92, // 弹珠碰撞恢复系数 (0-1)
-		wallBounce: 0.85, // 墙壁反弹系数 (0-1)
-		minSpeed: 50, // 最小速度阈值，低于此值会加速到该值，方式为 CurrentSpeed *= scale = minSpeed / speed
-		maxSpeed: 800, // 全局最大速度限制,限制方式如上
-	},
+  // Physics parameters
+  physics: {
+    massScale: 0.01,
+    massOffset: 1,
+    damping: 0.9985, // Air resistance/damping coefficient (0-1)
+    restitution: 0.92, // Marble collision restitution coefficient (0-1)
+    wallBounce: 0.85, // Wall bounce coefficient (0-1)
+    minSpeed: 50, // Minimum speed threshold. Below this value, speed increases to this value: CurrentSpeed *= scale = minSpeed / speed
+    maxSpeed: 800, // Global maximum speed limit, limited in the same way as above
+  },
 
-	// 动画配置
-	animation: {
-		fadeInDelay: 100,
-		fixedDeltaTime: 1 / 60, // 60 FPS
-		maxFrameTime: 0.1, // 100ms
-	},
+  // Animation configuration
+  animation: {
+    fadeInDelay: 100,
+    fixedDeltaTime: 1 / 60, // 60 FPS
+    maxFrameTime: 0.1, // 100ms
+  },
 
-	// 鼠标交互配置
-	mouseInteraction: {
-		attractRadius: 500, // 吸引范围
-		repelRadius: 300, // 排斥范围
-		repelForce: 400, // 排斥力
-		attractForce: 600, // 吸引力
-	},
+  // Mouse interaction configuration
+  mouseInteraction: {
+    attractRadius: 500, // Attraction radius
+    repelRadius: 300, // Repulsion radius
+    repelForce: 400, // Repulsion force
+    attractForce: 600, // Attraction force
+  },
 } as const;
 
 export const AVATAR_BASE_URL = "https://avatar.awfufu.com/qq/";

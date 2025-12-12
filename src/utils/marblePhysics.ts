@@ -34,7 +34,7 @@ export class MarblePhysics {
     for (const m of marbles) {
       // Apply air resistance
       if (damping !== undefined && damping < 1) {
-        const dampingFactor = Math.pow(damping, dt * 60); // Frame rate independent
+        const dampingFactor = damping ** (dt * 60); // Frame rate independent
         m.vx *= dampingFactor;
         m.vy *= dampingFactor;
       }
@@ -82,7 +82,8 @@ export class MarblePhysics {
 
           if (relativeVelocity < 0) {
             // Calculate impulse using restitution coefficient
-            const impulse = ((1 + restitution) * relativeVelocity) / (a.mass + b.mass);
+            const impulse =
+              ((1 + restitution) * relativeVelocity) / (a.mass + b.mass);
             a.vx -= impulse * b.mass * nx;
             a.vy -= impulse * b.mass * ny;
             b.vx += impulse * a.mass * nx;

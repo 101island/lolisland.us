@@ -5,12 +5,12 @@ import MainView from "../components/MainView.astro";
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lolisland.us</title>
   </head>
   <body>
-    <MainView />
+    <MainView/>
   </body>
 </html>
 
@@ -32,7 +32,8 @@ import MainView from "../components/MainView.astro";
     min-height: 100vh;
     min-height: 100dvh;
     overflow: hidden;
-    background: radial-gradient(
+    background:
+      radial-gradient(
         120% 120% at 20% 25%,
         rgba(255, 127, 209, 0.35),
         transparent 55%
@@ -46,15 +47,9 @@ import MainView from "../components/MainView.astro";
         130% 140% at 50% 85%,
         rgba(255, 209, 102, 0.22),
         transparent 55%
-      ),
-      linear-gradient(150deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+      ), linear-gradient(150deg, var(--bg0), var(--bg1) 45%, var(--bg2));
     color: var(--text);
-    font-family:
-      "Space Grotesk",
-      "Inter",
-      system-ui,
-      -apple-system,
-      sans-serif;
+    font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
     letter-spacing: 0.02em;
     background-repeat: no-repeat;
     background-size: cover;
@@ -62,7 +57,8 @@ import MainView from "../components/MainView.astro";
 
   @media (max-width: 720px) {
     body {
-      background: radial-gradient(
+      background:
+        radial-gradient(
           140% 140% at 25% 15%,
           rgba(255, 127, 209, 0.38),
           transparent 55%
@@ -76,8 +72,7 @@ import MainView from "../components/MainView.astro";
           150% 150% at 50% 90%,
           rgba(255, 209, 102, 0.24),
           transparent 60%
-        ),
-        linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
+        ), linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
       background-repeat: no-repeat;
       background-size: cover;
     }

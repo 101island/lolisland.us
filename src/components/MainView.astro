@@ -1,26 +1,26 @@
 ---
 import titleSvg from "../assets/title.svg?raw";
+import Footer from "./Footer.astro";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
-import Footer from "./Footer.astro";
 ---
 
-<Navbar />
-<Particles />
+<Navbar/>
+<Particles/>
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<Footer />
+<Footer/>
 
 <div class="content">
   <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg} />
+    <div class="title-svg-container" set:html={titleSvg}/>
   </div>
 </div>
 
 <script>
-  import { MarbleSystem } from "../utils/marbleSystem";
   import { fetchUsers } from "../data/users";
+  import { MarbleSystem } from "../utils/marbleSystem";
 
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
@@ -153,7 +153,6 @@ import Footer from "./Footer.astro";
     width: auto;
     max-width: 80vw;
     position: relative;
-    overflow: hidden;
     overflow: hidden;
     pointer-events: auto;
     z-index: 6;

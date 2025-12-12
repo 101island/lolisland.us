@@ -103,7 +103,8 @@ export class MouseInteraction {
   public applyForce(marble: Marble, dt: number): void {
     // Fix state at the start of function to avoid state change during execution
     const isAttractMode = this.isShiftPressed;
-    const { attractRadius, repelRadius, repelForce, attractForce } = this.config;
+    const { attractRadius, repelRadius, repelForce, attractForce } =
+      this.config;
 
     const dx = marble.x - this.mouseX;
     const dy = marble.y - this.mouseY;

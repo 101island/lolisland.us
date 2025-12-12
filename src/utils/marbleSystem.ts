@@ -1,12 +1,12 @@
 // Marble system manager: Integrates all subsystems and provides a unified API
 
-import type { Marble, MouseInteractionConfig } from "./mouseInteraction";
 import type { UserEntry } from "../config/marbleConfig";
-import { MouseInteraction } from "./mouseInteraction";
-import { MarblePhysics } from "./marblePhysics";
-import { MarbleFactory } from "./marbleFactory";
-import { AnimationLoop } from "./animationLoop";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
+import { AnimationLoop } from "./animationLoop";
+import { MarbleFactory } from "./marbleFactory";
+import { MarblePhysics } from "./marblePhysics";
+import type { Marble, MouseInteractionConfig } from "./mouseInteraction";
+import { MouseInteraction } from "./mouseInteraction";
 
 export interface MarbleSystemConfig {
   container: HTMLElement;
@@ -45,11 +45,14 @@ export class MarbleSystem {
         config.mouseInteractionConfig?.attractRadius ??
         MARBLE_CONFIG.mouseInteraction.attractRadius,
       repelRadius:
-        config.mouseInteractionConfig?.repelRadius ?? MARBLE_CONFIG.mouseInteraction.repelRadius,
+        config.mouseInteractionConfig?.repelRadius ??
+        MARBLE_CONFIG.mouseInteraction.repelRadius,
       repelForce:
-        config.mouseInteractionConfig?.repelForce ?? MARBLE_CONFIG.mouseInteraction.repelForce,
+        config.mouseInteractionConfig?.repelForce ??
+        MARBLE_CONFIG.mouseInteraction.repelForce,
       attractForce:
-        config.mouseInteractionConfig?.attractForce ?? MARBLE_CONFIG.mouseInteraction.attractForce,
+        config.mouseInteractionConfig?.attractForce ??
+        MARBLE_CONFIG.mouseInteraction.attractForce,
     };
     this.mouseInteraction = new MouseInteraction(mouseConfig);
     this.mouseInteraction.init();
@@ -66,7 +69,11 @@ export class MarbleSystem {
     });
 
     // MarbleFactory Init
-    this.factory = new MarbleFactory(this.container, this.fieldWidth, this.fieldHeight);
+    this.factory = new MarbleFactory(
+      this.container,
+      this.fieldWidth,
+      this.fieldHeight,
+    );
 
     // AnimationLoop Init
     this.animationLoop = new AnimationLoop(
@@ -190,7 +197,8 @@ export class MarbleSystem {
   // Calculate marble size
   private calculateMarbleSize(zoomLevel: number): number {
     const { base, min, maxScreenRatio } = MARBLE_CONFIG.size;
-    const quarter = Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
+    const quarter =
+      Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
     const capped = Math.min(base, quarter || base);
     return Math.max(min, Math.floor(capped)) * zoomLevel;
   }

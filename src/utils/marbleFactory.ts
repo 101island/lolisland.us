@@ -1,8 +1,8 @@
 // Marble factory: Responsible for creating and initializing marble instances
 
-import type { Marble } from "./mouseInteraction";
 import type { UserEntry } from "../config/marbleConfig";
-import { MARBLE_CONFIG, AVATAR_BASE_URL } from "../config/marbleConfig";
+import { AVATAR_BASE_URL, MARBLE_CONFIG } from "../config/marbleConfig";
+import type { Marble } from "./mouseInteraction";
 
 export class MarbleFactory {
   private container: HTMLElement;
@@ -19,7 +19,8 @@ export class MarbleFactory {
   // Calculate marble size (responsive)
   private calculateMarbleSize(): number {
     const { base, min, maxScreenRatio } = MARBLE_CONFIG.size;
-    const quarter = Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
+    const quarter =
+      Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
     const capped = Math.min(base, quarter || base);
     return Math.max(min, Math.floor(capped)) * this.zoomLevel;
   }
@@ -30,7 +31,11 @@ export class MarbleFactory {
   }
 
   // Create marble DOM node wrapper
-  private createMarbleWrapper(entry: UserEntry, size: number, url: string): HTMLElement {
+  private createMarbleWrapper(
+    entry: UserEntry,
+    size: number,
+    url: string,
+  ): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "marble-wrapper";
     wrapper.style.width = `${size}px`;
@@ -125,7 +130,9 @@ export class MarbleFactory {
 
   // Batch create marbles
   public async createMarbles(entries: UserEntry[]): Promise<Marble[]> {
-    const results = await Promise.allSettled(entries.map((entry) => this.createMarble(entry)));
+    const results = await Promise.allSettled(
+      entries.map((entry) => this.createMarble(entry)),
+    );
 
     const marbles: Marble[] = [];
     for (let i = 0; i < results.length; i++) {
@@ -133,7 +140,10 @@ export class MarbleFactory {
       if (result.status === "fulfilled") {
         marbles.push(result.value);
       } else {
-        console.warn(`Failed to create marble for ${entries[i].name}:`, result.reason);
+        console.warn(
+          `Failed to create marble for ${entries[i].name}:`,
+          result.reason,
+        );
       }
     }
 

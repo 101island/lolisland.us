@@ -15,7 +15,8 @@
       "**",
       "!**/src/public/**/*",
       "!**/dist/**/*",
-      "!**/node_modules/**/*"
+      "!**/node_modules/**/*",
+      "!**/.astro/**/*"
     ]
   },
   "assist": {
@@ -27,8 +28,16 @@
     }
   },
   "html": {
-    "formatter": { "enabled": true, "indentScriptAndStyle": true },
+    "formatter": {
+      "enabled": true,
+      "indentScriptAndStyle": true
+    },
     "experimentalFullSupportEnabled": true
+  },
+  "css": {
+    "parser": {
+      "cssModules": true
+    }
   },
   "overrides": [
     {
@@ -42,6 +51,9 @@
           "correctness": {
             "noUnusedVariables": "off",
             "noUnusedImports": "off"
+          },
+          "suspicious": {
+            "noDuplicateProperties": "off"
           }
         }
       }

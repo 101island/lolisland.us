@@ -140,15 +140,13 @@ import Particles from "./Particles.astro";
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.06),
-      rgba(255, 255, 255, 0.03)
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.04)
     );
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(6px);
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 30px 80px rgba(0, 0, 0, 0.35),
-      0 0 60px rgba(255, 127, 209, 0.28),
-      0 0 40px rgba(124, 251, 255, 0.24);
+      0 10px 40px rgba(0, 0, 0, 0.5);
     display: inline-block;
     width: auto;
     max-width: 80vw;
@@ -241,13 +239,12 @@ import Particles from "./Particles.astro";
     background-size: cover;
     background-position: center;
     cursor: pointer;
+    margin: 0;
     box-shadow:
-      inset -3px -5px 10px rgba(0, 0, 0, 0.5),
-      inset 2px 4px 6px rgba(255, 255, 255, 0.35),
-      0 0 14px rgba(255, 255, 255, 0.45),
-      0 0 4px rgba(255, 255, 255, 0.6),
-      0 8px 20px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+      inset -2px -2px 6px rgba(0, 0, 0, 0.6),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    /* backdrop-filter: blur(4px); -- Removed for performance */
     overflow: hidden;
     transform: translate3d(0, 0, 0);
     will-change: transform;
@@ -271,11 +268,9 @@ import Particles from "./Particles.astro";
   :global(.marble:hover) {
     transform: scale(1.15) translateY(-2px);
     box-shadow:
-      inset -3px -5px 12px rgba(0, 0, 0, 0.4),
-      inset 2px 4px 8px rgba(255, 255, 255, 0.45),
-      0 0 25px rgba(255, 255, 255, 0.65),
-      0 0 8px rgba(255, 255, 255, 0.8),
-      0 15px 35px rgba(0, 0, 0, 0.45);
+      inset -2px -2px 6px rgba(0, 0, 0, 0.5),
+      inset 2px 2px 6px rgba(255, 255, 255, 0.5),
+      0 4px 12px rgba(0, 0, 0, 0.5);
     filter: brightness(1.05);
   }
 
@@ -292,8 +287,8 @@ import Particles from "./Particles.astro";
     font-weight: 600;
     letter-spacing: 0.02em;
     text-align: center;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(6px);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    /* backdrop-filter: blur(6px); -- Removed for performance */
     pointer-events: none;
   }
 

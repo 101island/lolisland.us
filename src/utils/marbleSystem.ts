@@ -208,4 +208,9 @@ export class MarbleSystem {
     this.stop();
     this.clear();
   }
+
+  // Toggle collision
+  public setCollisions(enabled: boolean): void {
+    this.physics.updateConfig({ enableCollisions: enabled });
+  }
 }

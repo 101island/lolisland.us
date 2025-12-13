@@ -1,36 +1,46 @@
 <div class="settings-container">
   <div class="menu-items" id="settings-menu">
-    <button id="zoom-in" aria-label="Zoom In">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-    </button>
-    <button id="zoom-out" aria-label="Zoom Out">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-    </button>
+    <div class="zoom-controls">
+      <button id="zoom-in" aria-label="Zoom In">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+      <button id="zoom-out" aria-label="Zoom Out">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="separator"></div>
+
+    <label class="toggle-switch">
+      <input type="checkbox" id="collision-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">Collisions</span>
+    </label>
   </div>
 
   <!-- Toggle Button -->
@@ -57,6 +67,18 @@
 <script>
   const toggleBtn = document.getElementById("settings-toggle");
   const menu = document.getElementById("settings-menu");
+  const collisionToggle = document.getElementById(
+    "collision-toggle",
+  ) as HTMLInputElement;
+
+  if (collisionToggle) {
+    collisionToggle.addEventListener("change", (e) => {
+      const enabled = (e.target as HTMLInputElement).checked;
+      window.dispatchEvent(
+        new CustomEvent("toggle-collision", { detail: { enabled } }),
+      );
+    });
+  }
 
   if (toggleBtn && menu) {
     toggleBtn.addEventListener("click", (e) => {
@@ -81,24 +103,25 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-end; /* Align to right */
   }
 
   /* Menu Items (Popup) */
   .menu-items {
     position: absolute;
     bottom: 120%; /* Above the button */
-    left: 50%;
-    transform: translateX(-50%) translateY(10px);
+    right: 0; /* Align to right edge */
+    transform: translateY(10px);
     display: flex;
-    flex-direction: row; /* Horizontal layout */
+    flex-direction: column; /* Vertical stack */
     gap: 0.8rem;
-    padding: 0.8rem; /* Adjusted padding */
+    padding: 0.6rem; /* Reduced padding */
     background: linear-gradient(
       145deg,
       rgba(255, 255, 255, 0.12),
       rgba(255, 255, 255, 0.04)
     ); /* Translucent gradient */
+    backdrop-filter: blur(6px); /* Glass blur effect */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -113,7 +136,13 @@
   .menu-items.active {
     opacity: 1;
     pointer-events: auto;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
+  }
+
+  .zoom-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 0.8rem;
   }
 
   /* Button Styles (Shared) */
@@ -158,5 +187,68 @@
     width: 24px;
     height: 24px;
     opacity: 0.8;
+  }
+
+  .separator {
+    width: 100%; /* Full width separator */
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0;
+  }
+
+  /* Toggle Switch */
+  .toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    user-select: none;
+    padding: 0 0.5rem; /* Add padding */
+    height: 48px; /* Match button height */
+  }
+
+  .toggle-switch input {
+    display: none;
+  }
+
+  .slider {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    transition: 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  input:checked + .slider {
+    background: rgba(124, 251, 255, 0.3);
+    border-color: rgba(124, 251, 255, 0.4);
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(18px);
+    background: #7cfbff;
+    box-shadow: 0 0 10px rgba(124, 251, 255, 0.6);
+  }
+
+  .label-text {
+    font-weight: 500;
+    letter-spacing: 0.02em;
   }
 </style>

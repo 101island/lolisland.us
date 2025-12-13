@@ -5,16 +5,16 @@ import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
 
-<Navbar/>
-<Particles/>
+<Navbar />
+<Particles />
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<Footer/>
+<Footer />
 
 <div class="content">
   <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg}/>
+    <div class="title-svg-container" set:html={titleSvg} />
   </div>
 </div>
 
@@ -78,6 +78,11 @@ import Particles from "./Particles.astro";
         marbleSystem.updateMarbleSize(zoomLevel);
       });
     }
+
+    // Toggle Collisions
+    window.addEventListener("toggle-collision", ((e: CustomEvent) => {
+      marbleSystem.setCollisions(e.detail.enabled);
+    }) as EventListener);
   }
 </script>
 

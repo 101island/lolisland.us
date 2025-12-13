@@ -10,6 +10,7 @@ export interface PhysicsConfig {
   wallBounce?: number; // Wall bounce coefficient
   minSpeed?: number; // Minimum speed
   maxSpeed?: number; // Maximum speed
+  enableCollisions?: boolean; // Enable/Disable collisions
 }
 
 export class MarblePhysics {
@@ -24,6 +25,7 @@ export class MarblePhysics {
       wallBounce: config.wallBounce ?? 0.85,
       minSpeed: config.minSpeed ?? 30,
       maxSpeed: config.maxSpeed ?? 800,
+      enableCollisions: config.enableCollisions ?? true,
     };
   }
 
@@ -64,6 +66,8 @@ export class MarblePhysics {
 
   // Handle collisions between marbles using Spatial Grid
   public handleCollisions(marbles: Marble[]): void {
+    if (this.config.enableCollisions === false) return;
+
     const restitution = this.config.restitution ?? 1;
     const { fieldWidth, fieldHeight } = this.config;
 

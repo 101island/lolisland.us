@@ -5,19 +5,39 @@ import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
 
-<Navbar />
+<Navbar/>
 <div class="particles-container">
-  <Particles />
+  <Particles/>
 </div>
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<Footer />
+<Footer/>
 
 <div class="content">
   <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg} />
+    <div class="title-svg-container" set:html={titleSvg}/>
   </div>
+</div>
+
+<div
+  id="debug-info"
+  style="
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.7);
+  color: #0f0;
+  font-family: monospace;
+  padding: 8px;
+  border-radius: 4px;
+  z-index: 9999;
+  font-size: 12px;
+  pointer-events: none;
+  display: none;
+"
+>
+  Initializing Gyro...
 </div>
 
 <script>
@@ -62,6 +82,34 @@ import Particles from "./Particles.astro";
         marbleSystem.addMarbles(users);
       })
       .catch((err) => console.error("Failed to fetch users:", err));
+
+    // Debug Info Loop
+    const debugEl = document.getElementById("debug-info");
+    if (debugEl) {
+      // ?debug=true
+      const urlParams = new URLSearchParams(window.location.search);
+      const isDebug = urlParams.get("debug") === "true";
+
+      if (isDebug) {
+        debugEl.style.display = "block";
+        const updateDebug = () => {
+          const info = marbleSystem.getDeviceOrientationDebugInfo();
+          debugEl.innerHTML = `
+            <div>Active: ${info.active}</div>
+            <div>Supported: ${info.supported}</div>
+            <div>AX: ${info.ax}</div>
+            <div>AY: ${info.ay}</div>
+            <div>Alpha: ${info.alpha}</div>
+            <div>Beta: ${info.beta}</div>
+            <div>Gamma: ${info.gamma}</div>
+            <div>Force: ${Math.hypot(parseFloat(info.ax), parseFloat(info.ay)).toFixed(2)}</div>
+            <div>SubSteps: ${info.subSteps}</div>
+          `;
+          requestAnimationFrame(updateDebug);
+        };
+        updateDebug();
+      }
+    }
 
     // 缩放功能
     const zoomInBtn = document.getElementById("zoom-in");

@@ -13,6 +13,9 @@ export interface DeviceOrientationConfig {
 export class DeviceOrientationInteraction {
   private ax: number = 0; // Acceleration on X (m/s^2)
   private ay: number = 0; // Acceleration on Y (m/s^2)
+  private alpha: number | null = 0;
+  private beta: number | null = 0;
+  private gamma: number | null = 0;
   private isActive: boolean = false;
   private config: DeviceOrientationConfig;
 
@@ -45,6 +48,10 @@ export class DeviceOrientationInteraction {
   private handleOrientation(event: DeviceOrientationEvent): void {
     const { alpha, beta, gamma } = event;
 
+    this.alpha = alpha;
+    this.beta = beta;
+    this.gamma = gamma;
+
     if (
       alpha === null ||
       beta === null ||
@@ -62,6 +69,18 @@ export class DeviceOrientationInteraction {
         ? g * Math.sin((gamma - 180) * toRad)
         : g * Math.sin(gamma * toRad);
     this.ay = g * Math.sin(beta * toRad);
+  }
+
+  public getDebugInfo() {
+    return {
+      active: this.isActive,
+      supported: this.isSupported(),
+      ax: this.ax.toFixed(2),
+      ay: this.ay.toFixed(2),
+      alpha: this.alpha?.toFixed(1),
+      beta: this.beta?.toFixed(1),
+      gamma: this.gamma?.toFixed(1),
+    };
   }
 
   /**
@@ -94,6 +113,20 @@ export class DeviceOrientationInteraction {
     }
     this.init(); // Init anyway for non-iOS 13+
     return true;
+  }
+
+  /**
+   * Check if gravity is active and significant
+   */
+  public hasActiveGravity(): boolean {
+    return this.isActive && (this.ax !== 0 || this.ay !== 0);
+  }
+
+  /**
+   * Get current acceleration vector
+   */
+  public getAcceleration(): { x: number; y: number } {
+    return { x: this.ax, y: this.ay };
   }
 
   /**

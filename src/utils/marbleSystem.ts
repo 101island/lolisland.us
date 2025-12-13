@@ -103,24 +103,51 @@ export class MarbleSystem {
     this.setupResizeHandler();
   }
 
+  private currentSubSteps: number = 1;
+
   // Per-frame update logic
   private update(dt: number): void {
-    // Apply mouse force field
-    for (const marble of this.marbles) {
-      if (this.mouseInteraction.shouldApplyForce(marble)) {
-        this.mouseInteraction.applyForce(marble, dt);
+    let subSteps = 1;
+
+    if (this.deviceOrientationInteraction.hasActiveGravity()) {
+      const { x, y } = this.deviceOrientationInteraction.getAcceleration();
+      const magnitude = Math.hypot(x, y);
+
+      // Dynamically adjust sub-steps based on gravity intensity
+      // Theory: Less gravity = less force clamping marbles against walls = less tunneling risk
+      if (magnitude == 0.0) {
+        subSteps = 1;
+      } else if (magnitude < 1.0) {
+        subSteps = 2;
+      } else if (magnitude < 2.0) {
+        subSteps = 4;
+      } else {
+        subSteps = 8;
       }
     }
 
-    // Apply device motion force
-    if (this.deviceOrientationInteraction.isSupported()) {
-      this.deviceOrientationInteraction.applyForce(this.marbles, dt);
+    this.currentSubSteps = subSteps;
+    const subDt = dt / subSteps;
+
+    for (let i = 0; i < subSteps; i++) {
+      // Apply mouse force field
+      for (const marble of this.marbles) {
+        if (this.mouseInteraction.shouldApplyForce(marble)) {
+          this.mouseInteraction.applyForce(marble, subDt);
+        }
+      }
+
+      // Apply device motion force
+      if (this.deviceOrientationInteraction.isSupported()) {
+        this.deviceOrientationInteraction.applyForce(this.marbles, subDt);
+      }
+
+      // Update physics
+      this.physics.updatePositions(this.marbles, subDt);
+      this.physics.handleCollisions(this.marbles);
+      this.physics.handleBoundaries(this.marbles);
     }
 
-    // Update physics
-    this.physics.updatePositions(this.marbles, dt);
-    this.physics.handleCollisions(this.marbles);
-    this.physics.handleBoundaries(this.marbles);
     this.physics.render(this.marbles);
   }
 
@@ -235,9 +262,12 @@ export class MarbleSystem {
   /**
    * Get device motion debug info see also MainView.astro
    */
-  // public getDeviceOrientationDebugInfo() {
-  //   return this.deviceOrientationInteraction.getDebugInfo();
-  // }
+  public getDeviceOrientationDebugInfo() {
+    return {
+      ...this.deviceOrientationInteraction.getDebugInfo(),
+      subSteps: this.currentSubSteps,
+    };
+  }
 
   // Destroy system
   public destroy(): void {

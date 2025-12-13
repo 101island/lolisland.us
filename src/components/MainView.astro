@@ -1,8 +1,8 @@
 ---
 import titleSvg from "../assets/title.svg?raw";
+import Footer from "./Footer.astro";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
-import Footer from "./Footer.astro";
 ---
 
 <Navbar />
@@ -19,6 +19,9 @@ import Footer from "./Footer.astro";
 </div>
 
 <script>
+  import { fetchUsers } from "../data/users";
+  import { MarbleSystem } from "../utils/marbleSystem";
+
   const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
   const titleImg = document.querySelector(
@@ -36,210 +39,50 @@ import Footer from "./Footer.astro";
     reveal();
   }
 
-  const avatarUrl = (id: string) => `https://avatar.awfufu.com/qq/${id}`;
-
   const field = document.getElementById("marble-field");
 
   if (field) {
-    type Marble = {
-      id: string;
-      node: HTMLElement;
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      radius: number;
-      mass: number;
-    };
-    const marbles: Marble[] = [];
-    let fieldWidth = window.innerWidth;
-    let fieldHeight = window.innerHeight;
     let zoomLevel = 1.0;
 
-    const getMarbleSize = () => {
-      const base = 192;
-      const quarter = Math.min(window.innerWidth, window.innerHeight) * 0.25;
-      const capped = Math.min(base, quarter || base);
-      return Math.max(96, Math.floor(capped)) * zoomLevel;
-    };
+    // 初始化弹珠系统
+    const marbleSystem = new MarbleSystem({
+      container: field,
+      fieldWidth: window.innerWidth,
+      fieldHeight: window.innerHeight,
+    });
 
-    const createMarble = (entry: {
-      name: string;
-      id: string;
-      link?: string;
-    }) => {
-      if (!entry?.id) return;
+    // 启动动画循环
+    marbleSystem.start();
 
-      const url = avatarUrl(entry.id);
-      const img = new Image();
-
-      img.onload = () => {
-        const size = getMarbleSize();
-        const radius = size / 2;
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "marble-wrapper";
-        wrapper.style.width = `${size}px`;
-        wrapper.style.height = `${size}px`;
-        wrapper.style.opacity = "0"; // Start invisible
-
-        const node = document.createElement("a");
-        node.className = "marble";
-
-        if (entry.link) {
-          node.href = entry.link;
-          node.target = "_blank";
-        } else {
-          node.removeAttribute("href");
-          node.style.cursor = "default";
-        }
-
-        node.style.backgroundImage = `url("${url}")`;
-
-        const label = document.createElement("div");
-        label.className = "marble-label";
-        label.textContent = entry.name || entry.id;
-        node.appendChild(label);
-
-        wrapper.appendChild(node);
-
-        const startX = Math.random() * (fieldWidth - size) + radius;
-        const startY = Math.random() * (fieldHeight - size) + radius;
-        const speed = 60 + Math.random() * 90;
-        const angle = Math.random() * Math.PI * 2;
-
-        const marble = {
-          id: entry.id,
-          node: wrapper,
-          x: startX,
-          y: startY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          radius,
-          mass: radius * radius * 0.01 + 1,
-        };
-
-        field.appendChild(wrapper);
-        marbles.push(marble);
-
-        // Fade in
-        setTimeout(() => {
-          wrapper.style.opacity = "1";
-        }, 100);
-      };
-
-      img.src = url;
-    };
-
-    const resize = () => {
-      fieldWidth = window.innerWidth;
-      fieldHeight = window.innerHeight;
-    };
-
-    window.addEventListener("resize", resize);
-
-    fetch("https://avatar.awfufu.com/users")
-      .then((res) => res.json())
-      .then((userIds: { name: string; id: string; link?: string }[]) => {
-        userIds.forEach((entry) => createMarble(entry));
+    // 获取并添加用户弹珠
+    fetchUsers()
+      .then((users) => {
+        marbleSystem.addMarbles(users);
       })
       .catch((err) => console.error("Failed to fetch users:", err));
 
-    const update = (dt: number) => {
-      for (const m of marbles) {
-        m.x += m.vx * dt;
-        m.y += m.vy * dt;
-      }
-
-      for (let i = 0; i < marbles.length; i++) {
-        for (let j = i + 1; j < marbles.length; j++) {
-          const a = marbles[i];
-          const b = marbles[j];
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.hypot(dx, dy) || 0.001;
-          const minDist = a.radius + b.radius;
-          if (dist < minDist) {
-            const nx = dx / dist;
-            const ny = dy / dist;
-            const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-            if (relativeVelocity < 0) {
-              const impulse = (2 * relativeVelocity) / (a.mass + b.mass);
-              a.vx -= impulse * b.mass * nx;
-              a.vy -= impulse * b.mass * ny;
-              b.vx += impulse * a.mass * nx;
-              b.vy += impulse * a.mass * ny;
-            }
-            const overlap = minDist - dist + 0.5;
-            a.x -= nx * overlap * 0.5;
-            a.y -= ny * overlap * 0.5;
-            b.x += nx * overlap * 0.5;
-            b.y += ny * overlap * 0.5;
-          }
-        }
-      }
-
-      for (const m of marbles) {
-        if (m.x - m.radius < 0) {
-          m.x = m.radius;
-          if (m.vx < 0) m.vx *= -1;
-        }
-        if (m.x + m.radius > fieldWidth) {
-          m.x = fieldWidth - m.radius;
-          if (m.vx > 0) m.vx *= -1;
-        }
-        if (m.y - m.radius < 0) {
-          m.y = m.radius;
-          if (m.vy < 0) m.vy *= -1;
-        }
-        if (m.y + m.radius > fieldHeight) {
-          m.y = fieldHeight - m.radius;
-          if (m.vy > 0) m.vy *= -1;
-        }
-
-        m.node.style.transform = `translate(${m.x - m.radius}px, ${m.y - m.radius}px)`;
-      }
-    };
-
-    let last = performance.now();
-    const loop = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      update(Math.min(dt, 0.05));
-      requestAnimationFrame(loop);
-    };
-
-    requestAnimationFrame(loop);
-
-    const updateMarbleSize = () => {
-      const size = getMarbleSize();
-      const radius = size / 2;
-
-      for (const m of marbles) {
-        m.radius = radius;
-        m.node.style.width = `${size}px`;
-        m.node.style.height = `${size}px`;
-        // Recalculate mass if desired, but not strictly necessary for visual zoom
-        m.mass = radius * radius * 0.01 + 1;
-      }
-    };
-
+    // 缩放功能
     const zoomInBtn = document.getElementById("zoom-in");
     const zoomOutBtn = document.getElementById("zoom-out");
 
     if (zoomInBtn) {
       zoomInBtn.addEventListener("click", () => {
         zoomLevel = Math.min(zoomLevel + 0.1, 2.0); // Cap max zoom
-        updateMarbleSize();
+        marbleSystem.updateMarbleSize(zoomLevel);
       });
     }
 
     if (zoomOutBtn) {
       zoomOutBtn.addEventListener("click", () => {
         zoomLevel = Math.max(zoomLevel - 0.1, 0.5); // Cap min zoom
-        updateMarbleSize();
+        marbleSystem.updateMarbleSize(zoomLevel);
       });
     }
+
+    // Toggle Collisions
+    window.addEventListener("toggle-collision", ((e: CustomEvent) => {
+      marbleSystem.setCollisions(e.detail.enabled);
+    }) as EventListener);
   }
 </script>
 
@@ -302,20 +145,17 @@ import Footer from "./Footer.astro";
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.06),
-      rgba(255, 255, 255, 0.03)
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.04)
     );
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(6px);
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 30px 80px rgba(0, 0, 0, 0.35),
-      0 0 60px rgba(255, 127, 209, 0.28),
-      0 0 40px rgba(124, 251, 255, 0.24);
+      0 10px 40px rgba(0, 0, 0, 0.5);
     display: inline-block;
     width: auto;
     max-width: 80vw;
     position: relative;
-    overflow: hidden;
     overflow: hidden;
     pointer-events: auto;
     z-index: 6;
@@ -404,13 +244,12 @@ import Footer from "./Footer.astro";
     background-size: cover;
     background-position: center;
     cursor: pointer;
+    margin: 0;
     box-shadow:
-      inset -3px -5px 10px rgba(0, 0, 0, 0.5),
-      inset 2px 4px 6px rgba(255, 255, 255, 0.35),
-      0 0 14px rgba(255, 255, 255, 0.45),
-      0 0 4px rgba(255, 255, 255, 0.6),
-      0 8px 20px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+      inset -2px -2px 6px rgba(0, 0, 0, 0.6),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.4),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+    /* backdrop-filter: blur(4px); -- Removed for performance */
     overflow: hidden;
     transform: translate3d(0, 0, 0);
     will-change: transform;
@@ -434,11 +273,9 @@ import Footer from "./Footer.astro";
   :global(.marble:hover) {
     transform: scale(1.15) translateY(-2px);
     box-shadow:
-      inset -3px -5px 12px rgba(0, 0, 0, 0.4),
-      inset 2px 4px 8px rgba(255, 255, 255, 0.45),
-      0 0 25px rgba(255, 255, 255, 0.65),
-      0 0 8px rgba(255, 255, 255, 0.8),
-      0 15px 35px rgba(0, 0, 0, 0.45);
+      inset -2px -2px 6px rgba(0, 0, 0, 0.5),
+      inset 2px 2px 6px rgba(255, 255, 255, 0.5),
+      0 4px 12px rgba(0, 0, 0, 0.5);
     filter: brightness(1.05);
   }
 
@@ -455,8 +292,8 @@ import Footer from "./Footer.astro";
     font-weight: 600;
     letter-spacing: 0.02em;
     text-align: center;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(6px);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    /* backdrop-filter: blur(6px); -- Removed for performance */
     pointer-events: none;
   }
 

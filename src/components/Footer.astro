@@ -1,40 +1,10 @@
 ---
-
+import SettingsMenu from "./SettingsMenu.astro";
 ---
 
 <footer class="footer">
   <div class="controls">
-    <button id="zoom-out" aria-label="Zoom Out">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-    </button>
-    <button id="zoom-in" aria-label="Zoom In">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-    </button>
+    <SettingsMenu/>
   </div>
 </footer>
 
@@ -51,49 +21,5 @@
     display: flex;
     gap: 1rem;
     pointer-events: auto;
-  }
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.06),
-      rgba(255, 255, 255, 0.03)
-    );
-    backdrop-filter: blur(16px);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 4px 12px rgba(0, 0, 0, 0.2);
-    color: rgba(255, 255, 255, 0.9);
-    cursor: pointer;
-    transition:
-      transform 0.1s ease,
-      background 0.2s ease;
-  }
-
-  button:hover {
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.12),
-      rgba(255, 255, 255, 0.06)
-    );
-    transform: translateY(-2px);
-  }
-
-  button:active {
-    transform: translateY(0);
-  }
-
-  button svg {
-    width: 24px;
-    height: 24px;
-    opacity: 0.8;
   }
 </style>

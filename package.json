@@ -8,10 +8,16 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "format": "biome format --write .",
+    "lint": "biome lint --write .",
+    "check": "biome check --write .",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.12",
     "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.8"
   }
 }

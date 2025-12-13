@@ -43,6 +43,11 @@ export const MARBLE_CONFIG = {
     repelForce: 400, // Repulsion force
     attractForce: 600, // Attraction force
   },
+  // Device motion interaction configuration
+  deviceMotion: {
+    sensitivity: 600, // Sensitivity
+    maxForce: 6000, // Maximum force limit
+  },
 } as const;
 
 export const AVATAR_BASE_URL = "https://avatar.awfufu.com/qq/";

@@ -2,6 +2,7 @@
 
 import type { UserEntry } from "../config/marbleConfig";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
+import { DeviceMotionInteraction } from "./deviceMotionInteraction";
 import { AnimationLoop } from "./animationLoop";
 import { MarbleFactory } from "./marbleFactory";
 import { MarblePhysics } from "./marblePhysics";
@@ -18,6 +19,10 @@ export interface MarbleSystemConfig {
     repelForce?: number;
     attractForce?: number;
   };
+  deviceMotionConfig?: {
+    sensitivity?: number;
+    maxForce?: number;
+  };
 }
 
 export class MarbleSystem {
@@ -26,6 +31,7 @@ export class MarbleSystem {
 
   // Subsystems
   private mouseInteraction: MouseInteraction;
+  private deviceMotionInteraction: DeviceMotionInteraction;
   private physics: MarblePhysics;
   private factory: MarbleFactory;
   private animationLoop: AnimationLoop;
@@ -57,6 +63,17 @@ export class MarbleSystem {
     this.mouseInteraction = new MouseInteraction(mouseConfig);
     this.mouseInteraction.init();
 
+    // DeviceMotionInteraction Init
+    this.deviceMotionInteraction = new DeviceMotionInteraction({
+      sensitivity:
+        config.deviceMotionConfig?.sensitivity ??
+        MARBLE_CONFIG.deviceMotion.sensitivity,
+      maxForce:
+        config.deviceMotionConfig?.maxForce ??
+        MARBLE_CONFIG.deviceMotion.maxForce,
+    });
+
+    this.deviceMotionInteraction.init();
     // MarblePhysics Init
     this.physics = new MarblePhysics({
       fieldWidth: this.fieldWidth,
@@ -93,6 +110,11 @@ export class MarbleSystem {
       if (this.mouseInteraction.shouldApplyForce(marble)) {
         this.mouseInteraction.applyForce(marble, dt);
       }
+    }
+
+    // Apply device motion force
+    if (this.deviceMotionInteraction.isSupported()) {
+      this.deviceMotionInteraction.applyForce(this.marbles, dt);
     }
 
     // Update physics
@@ -202,6 +224,20 @@ export class MarbleSystem {
     const capped = Math.min(base, quarter || base);
     return Math.max(min, Math.floor(capped)) * zoomLevel;
   }
+
+  /**
+   * Request device motion permission
+   */
+  public async requestDeviceMotionPermission(): Promise<boolean> {
+    return this.deviceMotionInteraction.requestPermission();
+  }
+
+  /**
+   * Get device motion debug info see also MainView.astro
+   */
+  // public getDeviceMotionDebugInfo() {
+  //   return this.deviceMotionInteraction.getDebugInfo();
+  // }
 
   // Destroy system
   public destroy(): void {

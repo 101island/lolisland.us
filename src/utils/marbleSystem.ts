@@ -40,10 +40,25 @@ export class MarbleSystem {
   private fieldWidth: number;
   private fieldHeight: number;
 
+  // Debug mode
+  private debugMode: boolean = MARBLE_CONFIG.debug.enabled;
+  private debugCanvas: HTMLCanvasElement | null = null;
+
   constructor(config: MarbleSystemConfig) {
     this.container = config.container;
     this.fieldWidth = config.fieldWidth;
     this.fieldHeight = config.fieldHeight;
+
+    // Debug Canvas Init
+    if (MARBLE_CONFIG.debug.enabled) {
+      this.debugCanvas = document.getElementById(
+        MARBLE_CONFIG.debug.canvasId,
+      ) as HTMLCanvasElement | null;
+      if (this.debugCanvas) {
+        this.debugCanvas.width = this.fieldWidth;
+        this.debugCanvas.height = this.fieldHeight;
+      }
+    }
 
     // MouseInteraction Init
     const mouseConfig: MouseInteractionConfig = {
@@ -83,6 +98,8 @@ export class MarbleSystem {
       wallBounce: MARBLE_CONFIG.physics.wallBounce,
       minSpeed: MARBLE_CONFIG.physics.minSpeed,
       maxSpeed: MARBLE_CONFIG.physics.maxSpeed,
+      debugCanvas: this.debugCanvas,
+      debugVectorScale: MARBLE_CONFIG.debug.vectorScale,
     });
 
     // MarbleFactory Init
@@ -122,6 +139,11 @@ export class MarbleSystem {
     this.physics.handleCollisions(this.marbles);
     this.physics.handleBoundaries(this.marbles);
     this.physics.render(this.marbles);
+
+    // Render debug vectors if enabled
+    if (this.debugMode) {
+      this.physics.renderDebugVectors(this.marbles);
+    }
   }
 
   // Set up window resize listener
@@ -248,5 +270,39 @@ export class MarbleSystem {
   // Toggle collision
   public setCollisions(enabled: boolean): void {
     this.physics.updateConfig({ enableCollisions: enabled });
+  }
+
+  // Toggle debug mode (show velocity vectors)
+  public setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
+
+    // Get canvas from DOM if not already cached
+    if (!this.debugCanvas) {
+      this.debugCanvas = document.getElementById(
+        MARBLE_CONFIG.debug.canvasId,
+      ) as HTMLCanvasElement | null;
+    }
+
+    if (this.debugCanvas) {
+      if (enabled) {
+        // Show canvas and configure physics
+        this.debugCanvas.style.display = "block";
+        this.debugCanvas.width = this.fieldWidth;
+        this.debugCanvas.height = this.fieldHeight;
+        this.physics.updateConfig({ debugCanvas: this.debugCanvas });
+      } else {
+        // Hide canvas and clear
+        this.debugCanvas.style.display = "none";
+        const ctx = this.debugCanvas.getContext("2d");
+        if (ctx)
+          ctx.clearRect(0, 0, this.debugCanvas.width, this.debugCanvas.height);
+        this.physics.updateConfig({ debugCanvas: null });
+      }
+    }
+  }
+
+  // Get debug mode status
+  public isDebugMode(): boolean {
+    return this.debugMode;
   }
 }

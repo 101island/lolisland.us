@@ -48,6 +48,12 @@ export const MARBLE_CONFIG = {
     sensitivity: 600, // Sensitivity
     maxForce: 6000, // Maximum force limit
   },
+  // Debug configuration
+  debug: {
+    enabled: true, // Enable debug mode by default
+    vectorScale: 0.5, // Velocity vector scale factor
+    canvasId: "debug-velocity-canvas", // Debug canvas element ID
+  },
 } as const;
 
 export const AVATAR_BASE_URL = "https://avatar.awfufu.com/qq/";

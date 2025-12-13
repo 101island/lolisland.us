@@ -12,6 +12,7 @@ import Particles from "./Particles.astro";
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
+<canvas id="debug-velocity-canvas"></canvas>
 <Footer />
 
 <div class="content">
@@ -313,6 +314,16 @@ import Particles from "./Particles.astro";
     z-index: 2;
     opacity: 1; /* Default visible */
     transition: opacity 0.5s ease;
+  }
+
+  #debug-velocity-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
   }
 
   :global(.marble-wrapper) {

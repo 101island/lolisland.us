@@ -2,6 +2,7 @@
 
 import type { UserEntry } from "../config/marbleConfig";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
+import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
 import { AnimationLoop } from "./animationLoop";
 import { MarbleFactory } from "./marbleFactory";
 import { MarblePhysics } from "./marblePhysics";
@@ -18,6 +19,10 @@ export interface MarbleSystemConfig {
     repelForce?: number;
     attractForce?: number;
   };
+  deviceOrientationConfig?: {
+    sensitivity?: number;
+    maxForce?: number;
+  };
 }
 
 export class MarbleSystem {
@@ -26,6 +31,7 @@ export class MarbleSystem {
 
   // Subsystems
   private mouseInteraction: MouseInteraction;
+  private deviceOrientationInteraction: DeviceOrientationInteraction;
   private physics: MarblePhysics;
   private factory: MarbleFactory;
   private animationLoop: AnimationLoop;
@@ -57,6 +63,17 @@ export class MarbleSystem {
     this.mouseInteraction = new MouseInteraction(mouseConfig);
     this.mouseInteraction.init();
 
+    // DeviceOrientationInteraction Init
+    this.deviceOrientationInteraction = new DeviceOrientationInteraction({
+      sensitivity:
+        config.deviceOrientationConfig?.sensitivity ??
+        MARBLE_CONFIG.deviceOrientation.sensitivity,
+      maxForce:
+        config.deviceOrientationConfig?.maxForce ??
+        MARBLE_CONFIG.deviceOrientation.maxForce,
+    });
+
+    this.deviceOrientationInteraction.init();
     // MarblePhysics Init
     this.physics = new MarblePhysics({
       fieldWidth: this.fieldWidth,
@@ -86,19 +103,51 @@ export class MarbleSystem {
     this.setupResizeHandler();
   }
 
+  private currentSubSteps: number = 1;
+
   // Per-frame update logic
   private update(dt: number): void {
-    // Apply mouse force field
-    for (const marble of this.marbles) {
-      if (this.mouseInteraction.shouldApplyForce(marble)) {
-        this.mouseInteraction.applyForce(marble, dt);
+    let subSteps = 1;
+
+    if (this.deviceOrientationInteraction.hasActiveGravity()) {
+      const { x, y } = this.deviceOrientationInteraction.getAcceleration();
+      const magnitude = Math.hypot(x, y);
+
+      // Dynamically adjust sub-steps based on gravity intensity
+      // Theory: Less gravity = less force clamping marbles against walls = less tunneling risk
+      if (magnitude == 0.0) {
+        subSteps = 1;
+      } else if (magnitude < 1.0) {
+        subSteps = 2;
+      } else if (magnitude < 2.0) {
+        subSteps = 4;
+      } else {
+        subSteps = 8;
       }
     }
 
-    // Update physics
-    this.physics.updatePositions(this.marbles, dt);
-    this.physics.handleCollisions(this.marbles);
-    this.physics.handleBoundaries(this.marbles);
+    this.currentSubSteps = subSteps;
+    const subDt = dt / subSteps;
+
+    for (let i = 0; i < subSteps; i++) {
+      // Apply mouse force field
+      for (const marble of this.marbles) {
+        if (this.mouseInteraction.shouldApplyForce(marble)) {
+          this.mouseInteraction.applyForce(marble, subDt);
+        }
+      }
+
+      // Apply device motion force
+      if (this.deviceOrientationInteraction.isSupported()) {
+        this.deviceOrientationInteraction.applyForce(this.marbles, subDt);
+      }
+
+      // Update physics
+      this.physics.updatePositions(this.marbles, subDt);
+      this.physics.handleCollisions(this.marbles);
+      this.physics.handleBoundaries(this.marbles);
+    }
+
     this.physics.render(this.marbles);
   }
 
@@ -201,6 +250,23 @@ export class MarbleSystem {
       Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
     const capped = Math.min(base, quarter || base);
     return Math.max(min, Math.floor(capped)) * zoomLevel;
+  }
+
+  /**
+   * Request device motion permission
+   */
+  public async requestDeviceOrientationPermission(): Promise<boolean> {
+    return this.deviceOrientationInteraction.requestPermission();
+  }
+
+  /**
+   * Get device motion debug info see also MainView.astro
+   */
+  public getDeviceOrientationDebugInfo() {
+    return {
+      ...this.deviceOrientationInteraction.getDebugInfo(),
+      subSteps: this.currentSubSteps,
+    };
   }
 
   // Destroy system

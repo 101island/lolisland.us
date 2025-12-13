@@ -12,26 +12,11 @@ import Particles from "./Particles.astro";
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<!-- <div id="debug-overlay">
-  <div>
-    Support: <span id="debug-support">?</span>
-  </div>
-  <div>
-    Active: <span id="debug-active">?</span>
-  </div>
-  <div>
-    AX: <span id="debug-ax">0.00</span>
-  </div>
-  <div>
-    AY: <span id="debug-ay">0.00</span>
-  </div>
-  <button id="debug-perm-btn">Request Permission</button>
-</div> -->
-<Footer/>
+<Footer />
 
 <div class="content">
   <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg}/>
+    <div class="title-svg-container" set:html={titleSvg} />
   </div>
 </div>
 
@@ -95,28 +80,6 @@ import Particles from "./Particles.astro";
         marbleSystem.updateMarbleSize(zoomLevel);
       });
     }
-
-    // Debug Info Update see also marbleSystem.ts
-    // const debugSupport = document.getElementById("debug-support");
-    // const debugActive = document.getElementById("debug-active");
-    // const debugAx = document.getElementById("debug-ax");
-    // const debugAy = document.getElementById("debug-ay");
-    // const debugPermBtn = document.getElementById("debug-perm-btn");
-
-    // if (debugPermBtn) {
-    //   debugPermBtn.addEventListener("click", async () => {
-    //     const granted = await marbleSystem.requestDeviceMotionPermission();
-    //     if (debugActive) debugActive.innerText = granted ? "GRANTED" : "DENIED";
-    //   });
-    // }
-
-    // setInterval(() => {
-    //   const info = marbleSystem.getDeviceMotionDebugInfo();
-    //   if (debugSupport) debugSupport.innerText = String(info.supported);
-    //   if (debugActive) debugActive.innerText = String(info.active);
-    //   if (debugAx) debugAx.innerText = info.ax.toFixed(2);
-    //   if (debugAy) debugAy.innerText = info.ay.toFixed(2);
-    // }, 200);
 
     // Toggle Collisions
     window.addEventListener("toggle-collision", ((e: CustomEvent) => {
@@ -460,18 +423,4 @@ import Particles from "./Particles.astro";
       transform: translate3d(0, 0, 0) scale(1);
     }
   }
-
-  /* #debug-overlay {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #0f0;
-    padding: 10px;
-    z-index: 10000;
-    font-family: monospace;
-    font-size: 12px;
-    pointer-events: auto;
-    border: 1px solid #0f0;
-  } */
 </style>

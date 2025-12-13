@@ -44,7 +44,7 @@ export const MARBLE_CONFIG = {
     attractForce: 600, // Attraction force
   },
   // Device motion interaction configuration
-  deviceMotion: {
+  deviceOrientation: {
     sensitivity: 600, // Sensitivity
     maxForce: 6000, // Maximum force limit
   },

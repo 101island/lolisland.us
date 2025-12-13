@@ -6,7 +6,9 @@ import Particles from "./Particles.astro";
 ---
 
 <Navbar />
-<Particles />
+<div class="particles-container">
+  <Particles />
+</div>
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
@@ -83,6 +85,90 @@ import Particles from "./Particles.astro";
     window.addEventListener("toggle-collision", ((e: CustomEvent) => {
       marbleSystem.setCollisions(e.detail.enabled);
     }) as EventListener);
+
+    // Toggle Title
+    let titleTimeout: number;
+    window.addEventListener("toggle-title", ((e: CustomEvent) => {
+      const titleCard = document.querySelector(".title-card") as HTMLElement;
+      if (titleCard) {
+        clearTimeout(titleTimeout);
+        if (e.detail.enabled) {
+          titleCard.style.display = "inline-block";
+          // Force Reflow
+          void titleCard.offsetWidth;
+          titleCard.style.opacity = "1";
+          titleCard.style.pointerEvents = "auto";
+        } else {
+          titleCard.style.opacity = "0";
+          titleCard.style.pointerEvents = "none";
+          titleTimeout = setTimeout(() => {
+            titleCard.style.display = "none";
+          }, 500) as unknown as number;
+        }
+      }
+    }) as EventListener);
+
+    // Toggle Marbles
+    let marbleTimeout: number;
+    window.addEventListener("toggle-marbles", ((e: CustomEvent) => {
+      const marbleField = document.getElementById("marble-field");
+      if (marbleField) {
+        clearTimeout(marbleTimeout);
+
+        if (e.detail.enabled) {
+          // 1. Resume physics immediately (so they move while fading in)
+          marbleSystem.start();
+          // 2. Show element
+          marbleField.style.display = "block";
+          // 3. Force reflow for transition
+          void marbleField.offsetWidth;
+          // 4. Fade in
+          marbleField.style.opacity = "1";
+        } else {
+          // 1. Fade out
+          marbleField.style.opacity = "0";
+          // 2. Wait for transition, then stop physics & hide
+          marbleTimeout = setTimeout(() => {
+            marbleSystem.stop();
+            marbleField.style.display = "none";
+          }, 500) as unknown as number;
+        }
+      }
+    }) as EventListener);
+
+    // Toggle Background
+    let bgTimeout: number;
+    window.addEventListener("toggle-background", ((e: CustomEvent) => {
+      const bgElements = [
+        document.querySelector(".halo"),
+        document.querySelector(".grain"),
+        document.querySelector(".particles-container"),
+      ] as HTMLElement[];
+
+      bgElements.forEach((el) => {
+        if (el) {
+          // Ensure transition is active (robustness against CSS issues)
+          el.style.transition = "opacity 0.5s ease";
+
+          if (e.detail.enabled) {
+            el.style.display = "block";
+            // Force Reflow
+            void el.offsetWidth;
+            el.style.opacity = "1";
+          } else {
+            el.style.opacity = "0";
+          }
+        }
+      });
+
+      if (!e.detail.enabled) {
+        bgTimeout = setTimeout(() => {
+          bgElements.forEach((el) => {
+            if (el) el.style.display = "none";
+          });
+        }, 500) as unknown as number;
+      }
+    }) as EventListener);
   }
 </script>
 
@@ -95,6 +181,11 @@ import Particles from "./Particles.astro";
     pointer-events: none;
     animation: drift 20s linear infinite;
     z-index: 1;
+    transition: opacity 0.5s ease;
+  }
+
+  .particles-container {
+    transition: opacity 0.5s ease;
   }
 
   .halo {
@@ -102,6 +193,7 @@ import Particles from "./Particles.astro";
     inset: 0;
     pointer-events: none;
     z-index: 0;
+    transition: opacity 0.5s ease;
   }
 
   .halo::before,
@@ -160,7 +252,7 @@ import Particles from "./Particles.astro";
     pointer-events: auto;
     z-index: 6;
     opacity: 0;
-    transition: opacity 1s ease;
+    transition: opacity 0.5s ease;
   }
 
   .navbar {
@@ -219,6 +311,8 @@ import Particles from "./Particles.astro";
     inset: 0;
     overflow: hidden;
     z-index: 2;
+    opacity: 1; /* Default visible */
+    transition: opacity 0.5s ease;
   }
 
   :global(.marble-wrapper) {

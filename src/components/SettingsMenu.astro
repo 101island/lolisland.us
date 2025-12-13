@@ -37,9 +37,27 @@
     <div class="separator"></div>
 
     <label class="toggle-switch">
+      <input type="checkbox" id="title-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">Title</span>
+    </label>
+
+    <label class="toggle-switch">
+      <input type="checkbox" id="marbles-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">Marbles</span>
+    </label>
+
+    <label class="toggle-switch" id="collision-container">
       <input type="checkbox" id="collision-toggle" checked />
       <span class="slider"></span>
       <span class="label-text">Collisions</span>
+    </label>
+
+    <label class="toggle-switch">
+      <input type="checkbox" id="background-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">Background</span>
     </label>
   </div>
 
@@ -67,16 +85,85 @@
 <script>
   const toggleBtn = document.getElementById("settings-toggle");
   const menu = document.getElementById("settings-menu");
-  const collisionToggle = document.getElementById(
-    "collision-toggle",
-  ) as HTMLInputElement;
 
-  if (collisionToggle) {
-    collisionToggle.addEventListener("change", (e) => {
-      const enabled = (e.target as HTMLInputElement).checked;
-      window.dispatchEvent(
-        new CustomEvent("toggle-collision", { detail: { enabled } }),
-      );
+  // Toggle Elements
+  const toggles = {
+    collision: document.getElementById("collision-toggle") as HTMLInputElement,
+    title: document.getElementById("title-toggle") as HTMLInputElement,
+    marbles: document.getElementById("marbles-toggle") as HTMLInputElement,
+    background: document.getElementById(
+      "background-toggle",
+    ) as HTMLInputElement,
+  };
+
+  // Helper to dispatch event
+  const emit = (name: string, enabled: boolean) => {
+    window.dispatchEvent(new CustomEvent(name, { detail: { enabled } }));
+  };
+
+  // Bind events
+  if (toggles.collision) {
+    toggles.collision.addEventListener("change", (e) =>
+      emit("toggle-collision", (e.target as HTMLInputElement).checked),
+    );
+  }
+  if (toggles.title) {
+    toggles.title.addEventListener("change", (e) => {
+      const target = e.target as HTMLInputElement;
+      emit("toggle-title", target.checked);
+
+      // Debounce: Disable for 1s
+      target.disabled = true;
+      const parent = target.parentElement;
+      if (parent) parent.classList.add("disabled");
+
+      setTimeout(() => {
+        target.disabled = false;
+        if (parent) parent.classList.remove("disabled");
+      }, 500);
+    });
+  }
+  if (toggles.background) {
+    toggles.background.addEventListener("change", (e) => {
+      const target = e.target as HTMLInputElement;
+      emit("toggle-background", target.checked);
+
+      // Debounce: Disable for 1s
+      target.disabled = true;
+      const parent = target.parentElement;
+      if (parent) parent.classList.add("disabled");
+
+      setTimeout(() => {
+        target.disabled = false;
+        if (parent) parent.classList.remove("disabled");
+      }, 500);
+    });
+  }
+
+  // Special handling for Marbles toggle (controls collision visibility)
+  if (toggles.marbles) {
+    toggles.marbles.addEventListener("change", (e) => {
+      const target = e.target as HTMLInputElement;
+      emit("toggle-marbles", target.checked);
+
+      // Debounce: Disable for 0.5s
+      target.disabled = true;
+      const parent = target.parentElement;
+      if (parent) parent.classList.add("disabled");
+
+      setTimeout(() => {
+        target.disabled = false;
+        if (parent) parent.classList.remove("disabled");
+      }, 500);
+
+      // logic to disable/enable collision toggle
+      if (toggles.collision) {
+        toggles.collision.disabled = !target.checked;
+        const container = toggles.collision.parentElement;
+        if (container) {
+          container.classList.toggle("disabled", !target.checked);
+        }
+      }
     });
   }
 
@@ -207,6 +294,12 @@
     user-select: none;
     padding: 0 0.5rem; /* Add padding */
     height: 48px; /* Match button height */
+    transition: opacity 0.3s;
+  }
+
+  .toggle-switch.disabled {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .toggle-switch input {

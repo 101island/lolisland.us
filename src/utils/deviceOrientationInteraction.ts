@@ -64,10 +64,7 @@ export class DeviceOrientationInteraction {
     const g = 9.8;
     const toRad = Math.PI / 180;
 
-    this.ax =
-      alpha > 180
-        ? g * Math.sin((gamma - 180) * toRad)
-        : g * Math.sin(gamma * toRad);
+    this.ax = g * Math.sin(gamma * toRad) * Math.cos(beta * toRad);
     this.ay = g * Math.sin(beta * toRad);
   }
 

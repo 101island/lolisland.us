@@ -162,7 +162,7 @@ export class MarblePhysics {
               const ny = dy / dist;
               const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
 
-              if (relativeVelocity < 0) {
+              if (relativeVelocity > 0) {
                 // Calculate impulse using restitution coefficient
                 const impulse =
                   ((1 + restitution) * relativeVelocity) / (a.mass + b.mass);

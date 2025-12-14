@@ -5,39 +5,19 @@ import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
 
-<Navbar/>
+<Navbar />
 <div class="particles-container">
-  <Particles/>
+  <Particles />
 </div>
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<Footer/>
+<Footer />
 
 <div class="content">
   <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg}/>
+    <div class="title-svg-container" set:html={titleSvg} />
   </div>
-</div>
-
-<div
-  id="debug-info"
-  style="
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: rgba(0,0,0,0.7);
-  color: #0f0;
-  font-family: monospace;
-  padding: 8px;
-  border-radius: 4px;
-  z-index: 9999;
-  font-size: 12px;
-  pointer-events: none;
-  display: none;
-"
->
-  Initializing Gyro...
 </div>
 
 <script>
@@ -84,17 +64,31 @@ import Particles from "./Particles.astro";
       .catch((err) => console.error("Failed to fetch users:", err));
 
     // Debug Info Loop
-    const debugEl = document.getElementById("debug-info");
-    if (debugEl) {
-      // ?debug=true
-      const urlParams = new URLSearchParams(window.location.search);
-      const isDebug = urlParams.get("debug") === "true";
+    // Debug Mode Check
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDebug = urlParams.get("debug") === "true";
 
-      if (isDebug) {
-        debugEl.style.display = "block";
-        const updateDebug = () => {
-          const info = marbleSystem.getDeviceOrientationDebugInfo();
-          debugEl.innerHTML = `
+    if (isDebug) {
+      // 1. Create and inject Debug Canvas
+      const debugCanvas = document.createElement("canvas");
+      debugCanvas.id = "debug-velocity-canvas";
+      document.body.appendChild(debugCanvas);
+
+      // 2. Create and inject Debug Info Panel
+      const debugEl = document.createElement("div");
+      debugEl.id = "debug-info";
+      debugEl.innerHTML = "Initializing Gyro...";
+      document.body.appendChild(debugEl);
+
+      // 3. Enable Debug Mode in System
+      // We must set debug mode BEFORE starting the loop if we want it to pick up the canvas immediately,
+      // or set it now. The marbleSystem.setDebugMode will find the canvas by ID.
+      marbleSystem.setDebugMode(true);
+
+      // 4. Start Debug Info Loop
+      const updateDebug = () => {
+        const info = marbleSystem.getDeviceOrientationDebugInfo();
+        debugEl.innerHTML = `
             <div>Active: ${info.active}</div>
             <div>Supported: ${info.supported}</div>
             <div>AX: ${info.ax}</div>
@@ -105,10 +99,9 @@ import Particles from "./Particles.astro";
             <div>Force: ${Math.hypot(parseFloat(info.ax), parseFloat(info.ay)).toFixed(2)}</div>
             <div>SubSteps: ${info.subSteps}</div>
           `;
-          requestAnimationFrame(updateDebug);
-        };
-        updateDebug();
-      }
+        requestAnimationFrame(updateDebug);
+      };
+      updateDebug();
     }
 
     // 缩放功能
@@ -361,6 +354,31 @@ import Particles from "./Particles.astro";
     z-index: 2;
     opacity: 1; /* Default visible */
     transition: opacity 0.5s ease;
+  }
+
+  :global(#debug-velocity-canvas) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  :global(#debug-info) {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #0f0;
+    font-family: monospace;
+    padding: 8px;
+    border-radius: 4px;
+    z-index: 9999;
+    font-size: 12px;
+    pointer-events: none;
+    display: block; /* Visible when added */
   }
 
   :global(.marble-wrapper) {

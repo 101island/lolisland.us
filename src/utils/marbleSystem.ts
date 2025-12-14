@@ -2,6 +2,8 @@
 
 import type { UserEntry } from "../config/marbleConfig";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
+import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
+import { DeviceMotionInteraction } from "./deviceMotionInteraction";
 import { AnimationLoop } from "./animationLoop";
 import { MarbleFactory } from "./marbleFactory";
 import { MarblePhysics } from "./marblePhysics";
@@ -18,6 +20,16 @@ export interface MarbleSystemConfig {
     repelForce?: number;
     attractForce?: number;
   };
+  deviceOrientationConfig?: {
+    sensitivity?: number;
+    maxForce?: number;
+    enable?: boolean;
+  };
+  deviceMotionConfig?: {
+    sensitivity?: number;
+    maxForce?: number;
+    enable?: boolean;
+  };
 }
 
 export class MarbleSystem {
@@ -26,6 +38,8 @@ export class MarbleSystem {
 
   // Subsystems
   private mouseInteraction: MouseInteraction;
+  private deviceOrientationInteraction: DeviceOrientationInteraction;
+  private deviceMotionInteraction: DeviceMotionInteraction;
   private physics: MarblePhysics;
   private factory: MarbleFactory;
   private animationLoop: AnimationLoop;
@@ -33,6 +47,11 @@ export class MarbleSystem {
   // Field dimensions
   private fieldWidth: number;
   private fieldHeight: number;
+
+  // Debug mode
+  private debugMode: boolean = false;
+  private debugCanvas: HTMLCanvasElement | null = null;
+  private debugVectorScale: number = 0.5;
 
   constructor(config: MarbleSystemConfig) {
     this.container = config.container;
@@ -57,6 +76,34 @@ export class MarbleSystem {
     this.mouseInteraction = new MouseInteraction(mouseConfig);
     this.mouseInteraction.init();
 
+    // DeviceOrientationInteraction Init
+    this.deviceOrientationInteraction = new DeviceOrientationInteraction({
+      sensitivity:
+        config.deviceOrientationConfig?.sensitivity ??
+        MARBLE_CONFIG.deviceOrientation.sensitivity,
+      maxForce:
+        config.deviceOrientationConfig?.maxForce ??
+        MARBLE_CONFIG.deviceOrientation.maxForce,
+      enable:
+        config.deviceOrientationConfig?.enable ??
+        MARBLE_CONFIG.deviceOrientation.enable,
+    });
+
+    this.deviceOrientationInteraction.init();
+
+    // DeviceMotionInteraction Init
+    this.deviceMotionInteraction = new DeviceMotionInteraction({
+      sensitivity:
+        config.deviceMotionConfig?.sensitivity ??
+        MARBLE_CONFIG.deviceMotion.sensitivity,
+      maxForce:
+        config.deviceMotionConfig?.maxForce ??
+        MARBLE_CONFIG.deviceMotion.maxForce,
+      enable:
+        config.deviceMotionConfig?.enable ?? MARBLE_CONFIG.deviceMotion.enable,
+    });
+    this.deviceMotionInteraction.init();
+
     // MarblePhysics Init
     this.physics = new MarblePhysics({
       fieldWidth: this.fieldWidth,
@@ -66,6 +113,8 @@ export class MarbleSystem {
       wallBounce: MARBLE_CONFIG.physics.wallBounce,
       minSpeed: MARBLE_CONFIG.physics.minSpeed,
       maxSpeed: MARBLE_CONFIG.physics.maxSpeed,
+      debugCanvas: this.debugCanvas,
+      debugVectorScale: this.debugVectorScale,
     });
 
     // MarbleFactory Init
@@ -86,20 +135,72 @@ export class MarbleSystem {
     this.setupResizeHandler();
   }
 
+  private currentSubSteps: number = 1;
+
   // Per-frame update logic
   private update(dt: number): void {
-    // Apply mouse force field
-    for (const marble of this.marbles) {
-      if (this.mouseInteraction.shouldApplyForce(marble)) {
-        this.mouseInteraction.applyForce(marble, dt);
+    let subSteps = 1;
+
+    if (
+      this.deviceOrientationInteraction.hasActiveGravity() &&
+      this.deviceOrientationInteraction.getEnabled()
+    ) {
+      const { x, y } = this.deviceOrientationInteraction.getAcceleration();
+      const magnitude = Math.hypot(x, y);
+
+      // Dynamically adjust sub-steps based on gravity intensity
+      // Theory: Less gravity = less force clamping marbles against walls = less tunneling risk
+      if (magnitude < 2.0) {
+        subSteps = 1;
+      } else if (magnitude < 5.0) {
+        subSteps = 2;
+      } else {
+        subSteps = 4;
       }
+
+      const maxMagnitude = 7.0;
+      const exponent = 3;
+      const t = Math.min(magnitude / maxMagnitude, 1.0);
+      const factor = 1 - (2 * t) ** exponent;
+      const minSpeed = MARBLE_CONFIG.physics.minSpeed * Math.max(0, factor);
+      this.physics.updateConfig({ minSpeed: minSpeed });
+    } else {
+      this.physics.updateConfig({ minSpeed: MARBLE_CONFIG.physics.minSpeed });
     }
 
-    // Update physics
-    this.physics.updatePositions(this.marbles, dt);
-    this.physics.handleCollisions(this.marbles);
-    this.physics.handleBoundaries(this.marbles);
+    this.currentSubSteps = subSteps;
+    const subDt = dt / subSteps;
+
+    for (let i = 0; i < subSteps; i++) {
+      // Apply mouse force field
+      for (const marble of this.marbles) {
+        if (this.mouseInteraction.shouldApplyForce(marble)) {
+          this.mouseInteraction.applyForce(marble, subDt);
+        }
+      }
+
+      // Apply device orientation force
+      if (this.deviceOrientationInteraction.isActivated()) {
+        this.deviceOrientationInteraction.applyForce(this.marbles, subDt);
+      }
+
+      // Apply device motion force
+      if (this.deviceMotionInteraction.isActivated()) {
+        this.deviceMotionInteraction.applyForce(this.marbles, subDt);
+      }
+
+      // Update physics
+      this.physics.updatePositions(this.marbles, subDt);
+      this.physics.handleCollisions(this.marbles);
+      this.physics.handleBoundaries(this.marbles);
+    }
+
     this.physics.render(this.marbles);
+
+    // Render debug vectors if enabled
+    if (this.debugMode) {
+      this.physics.renderDebugVectors(this.marbles);
+    }
   }
 
   // Set up window resize listener
@@ -112,6 +213,11 @@ export class MarbleSystem {
         fieldHeight: this.fieldHeight,
       });
       this.factory.updateFieldSize(this.fieldWidth, this.fieldHeight);
+
+      if (this.debugCanvas) {
+        this.debugCanvas.width = this.fieldWidth;
+        this.debugCanvas.height = this.fieldHeight;
+      }
     });
   }
 
@@ -178,10 +284,20 @@ export class MarbleSystem {
     return this.marbles.length;
   }
 
+  public getKineticEnergy(): number {
+    let totalKineticEnergy = 0;
+    for (const m of this.marbles) {
+      const speedSq = m.vx * m.vx + m.vy * m.vy;
+      const energy = 0.5 * m.mass * speedSq;
+      totalKineticEnergy += energy;
+    }
+    return totalKineticEnergy;
+  }
+
   // Update marble size (zoom)
   public updateMarbleSize(zoomLevel: number): void {
     this.factory.setZoomLevel(zoomLevel);
-    const size = this.calculateMarbleSize(zoomLevel);
+    const size = this.factory.calculateMarbleSize();
     const radius = size / 2;
 
     for (const m of this.marbles) {
@@ -194,13 +310,28 @@ export class MarbleSystem {
     }
   }
 
-  // Calculate marble size
-  private calculateMarbleSize(zoomLevel: number): number {
-    const { base, min, maxScreenRatio } = MARBLE_CONFIG.size;
-    const quarter =
-      Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
-    const capped = Math.min(base, quarter || base);
-    return Math.max(min, Math.floor(capped)) * zoomLevel;
+  /**
+   * Request device motion permission
+   */
+  public async requestDeviceOrientationPermission(): Promise<boolean> {
+    return this.deviceOrientationInteraction.requestPermission();
+  }
+
+  public async requestDeviceMotionPermission(): Promise<boolean> {
+    return this.deviceMotionInteraction.requestPermission();
+  }
+
+  /**
+   * Get device motion debug info see also MainView.astro
+   */
+  public getAllDebugInfo() {
+    return {
+      ...this.deviceOrientationInteraction.getDebugInfo(),
+      ...this.deviceMotionInteraction.getDebugInfo(),
+      subSteps: this.currentSubSteps,
+      kineticEnergy: this.getKineticEnergy(),
+      minSpeed: this.physics.getConfig().minSpeed,
+    };
   }
 
   // Destroy system
@@ -212,5 +343,52 @@ export class MarbleSystem {
   // Toggle collision
   public setCollisions(enabled: boolean): void {
     this.physics.updateConfig({ enableCollisions: enabled });
+    this.physics.addRandomSpeed(this.marbles);
+  }
+
+  // Toggle device motion
+  public setDeviceMotion(enabled: boolean): void {
+    this.deviceMotionInteraction.updateConfig({ enable: enabled });
+  }
+
+  // Toggle device orientation
+  public setDeviceOrientation(enabled: boolean): void {
+    this.deviceOrientationInteraction.updateConfig({ enable: enabled });
+  }
+
+  // Toggle debug mode (show velocity vectors)
+  public setDebugMode(enabled: boolean): void {
+    this.debugMode = enabled;
+
+    if (enabled) {
+      // Get canvas from DOM if not already cached
+      if (!this.debugCanvas) {
+        this.debugCanvas = document.getElementById(
+          "debug-velocity-canvas",
+        ) as HTMLCanvasElement | null;
+      }
+
+      if (this.debugCanvas) {
+        // Show canvas and configure physics
+        this.debugCanvas.style.display = "block";
+        this.debugCanvas.width = this.fieldWidth;
+        this.debugCanvas.height = this.fieldHeight;
+        this.physics.updateConfig({ debugCanvas: this.debugCanvas });
+      }
+    } else {
+      if (this.debugCanvas) {
+        // Hide canvas and clear
+        this.debugCanvas.style.display = "none";
+        const ctx = this.debugCanvas.getContext("2d");
+        if (ctx)
+          ctx.clearRect(0, 0, this.debugCanvas.width, this.debugCanvas.height);
+      }
+      this.physics.updateConfig({ debugCanvas: null });
+    }
+  }
+
+  // Get debug mode status
+  public isDebugMode(): boolean {
+    return this.debugMode;
   }
 }

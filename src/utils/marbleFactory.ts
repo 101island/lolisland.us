@@ -17,10 +17,11 @@ export class MarbleFactory {
   }
 
   // Calculate marble size (responsive)
-  private calculateMarbleSize(): number {
-    const { base, min, maxScreenRatio } = MARBLE_CONFIG.size;
-    const quarter =
-      Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
+  public calculateMarbleSize(): number {
+    const { base, min, marbleCount, marbleArea } = MARBLE_CONFIG.size;
+    const fieldArea = this.fieldWidth * this.fieldHeight;
+    const areaPerMarble = (fieldArea * marbleArea) / marbleCount;
+    const quarter = Math.sqrt((4 * areaPerMarble) / Math.PI);
     const capped = Math.min(base, quarter || base);
     return Math.max(min, Math.floor(capped)) * this.zoomLevel;
   }

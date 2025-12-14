@@ -63,6 +63,54 @@ import Particles from "./Particles.astro";
       })
       .catch((err) => console.error("Failed to fetch users:", err));
 
+    // Debug Info Loop
+    // Debug Mode Check
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDebug = urlParams.get("debug") === "true";
+
+    if (isDebug) {
+      // 1. Create and inject Debug Canvas
+      const debugCanvas = document.createElement("canvas");
+      debugCanvas.id = "debug-velocity-canvas";
+      document.body.appendChild(debugCanvas);
+
+      // 2. Create and inject Debug Info Panel
+      const debugEl = document.createElement("div");
+      debugEl.id = "debug-info";
+      debugEl.innerHTML = "Initializing Gyro...";
+      document.body.appendChild(debugEl);
+
+      // 3. Enable Debug Mode in System
+      // We must set debug mode BEFORE starting the loop if we want it to pick up the canvas immediately,
+      // or set it now. The marbleSystem.setDebugMode will find the canvas by ID.
+      marbleSystem.setDebugMode(true);
+
+      // 4. Start Debug Info Loop
+      const updateDebug = () => {
+        const info = marbleSystem.getAllDebugInfo();
+        debugEl.innerHTML = `
+            <div>MActive: ${info.motionActive}</div>
+            <div>MSupported: ${info.motionSupported}</div>
+            <div>MAX: ${info.motionAx}</div>
+            <div>MAY: ${info.motionAy}</div>
+            <div>MAForce: ${Math.hypot(parseFloat(info.motionAx), parseFloat(info.motionAy)).toFixed(2)}</div>
+            <div>Active: ${info.active}</div>
+            <div>Supported: ${info.supported}</div>
+            <div>AX: ${info.ax}</div>
+            <div>AY: ${info.ay}</div>
+            <div>Alpha: ${info.alpha}</div>
+            <div>Beta: ${info.beta}</div>
+            <div>Gamma: ${info.gamma}</div>
+            <div>Force: ${Math.hypot(parseFloat(info.ax), parseFloat(info.ay)).toFixed(2)}</div>
+            <div>SubSteps: ${info.subSteps}</div>
+            <div>T: ${info.kineticEnergy.toFixed(2)}</div>
+            <div>MinSpeed: ${(info.minSpeed ?? 0).toFixed(2)}</div>
+          `;
+        requestAnimationFrame(updateDebug);
+      };
+      updateDebug();
+    }
+
     // 缩放功能
     const zoomInBtn = document.getElementById("zoom-in");
     const zoomOutBtn = document.getElementById("zoom-out");
@@ -84,6 +132,16 @@ import Particles from "./Particles.astro";
     // Toggle Collisions
     window.addEventListener("toggle-collision", ((e: CustomEvent) => {
       marbleSystem.setCollisions(e.detail.enabled);
+    }) as EventListener);
+
+    // Toggle Device Motion
+    window.addEventListener("toggle-device-motion", ((e: CustomEvent) => {
+      marbleSystem.setDeviceMotion(e.detail.enabled);
+    }) as EventListener);
+
+    // Toggle Device Orientation
+    window.addEventListener("toggle-device-orientation", ((e: CustomEvent) => {
+      marbleSystem.setDeviceOrientation(e.detail.enabled);
     }) as EventListener);
 
     // Toggle Title
@@ -313,6 +371,31 @@ import Particles from "./Particles.astro";
     z-index: 2;
     opacity: 1; /* Default visible */
     transition: opacity 0.5s ease;
+  }
+
+  :global(#debug-velocity-canvas) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  :global(#debug-info) {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #0f0;
+    font-family: monospace;
+    padding: 8px;
+    border-radius: 4px;
+    z-index: 9999;
+    font-size: 12px;
+    pointer-events: none;
+    display: block; /* Visible when added */
   }
 
   :global(.marble-wrapper) {

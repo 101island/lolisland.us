@@ -11,6 +11,8 @@ export interface PhysicsConfig {
   minSpeed?: number; // Minimum speed
   maxSpeed?: number; // Maximum speed
   enableCollisions?: boolean; // Enable/Disable collisions
+  debugCanvas?: HTMLCanvasElement | null; // Optional canvas for debug rendering
+  debugVectorScale?: number; // Scale factor for velocity vectors (default: 0.5)
 }
 
 export class MarblePhysics {
@@ -26,6 +28,8 @@ export class MarblePhysics {
       minSpeed: config.minSpeed ?? 30,
       maxSpeed: config.maxSpeed ?? 800,
       enableCollisions: config.enableCollisions ?? true,
+      debugCanvas: config.debugCanvas ?? null,
+      debugVectorScale: config.debugVectorScale ?? 0.5,
     };
   }
 
@@ -158,7 +162,7 @@ export class MarblePhysics {
               const ny = dy / dist;
               const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
 
-              if (relativeVelocity < 0) {
+              if (relativeVelocity > 0) {
                 // Calculate impulse using restitution coefficient
                 const impulse =
                   ((1 + restitution) * relativeVelocity) / (a.mass + b.mass);
@@ -225,5 +229,70 @@ export class MarblePhysics {
   // Get current configuration
   public getConfig(): PhysicsConfig {
     return { ...this.config };
+  }
+
+  // Render debug velocity vectors on canvas
+  public renderDebugVectors(marbles: Marble[]): void {
+    const canvas = this.config.debugCanvas;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const scale = this.config.debugVectorScale ?? 0.5;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (const m of marbles) {
+      const speed = Math.hypot(m.vx, m.vy);
+      if (speed < 1) continue; // Skip very slow marbles
+
+      const powerFactor = speed ** -0.1;
+
+      // Calculate arrow end point
+      const endX = m.x + m.vx * scale * powerFactor;
+      const endY = m.y + m.vy * scale * powerFactor;
+
+      // Color based on speed (green -> yellow -> red)
+      const normalizedSpeed = Math.min(speed / 500, 1);
+      const hue = (1 - normalizedSpeed) * 120; // 120=green, 0=red
+      ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+      ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+      ctx.lineWidth = 2;
+
+      // Draw line
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      // Draw arrowhead
+      const arrowSize = 8;
+      const angle = Math.atan2(m.vy, m.vx);
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(
+        endX - arrowSize * Math.cos(angle - Math.PI / 6),
+        endY - arrowSize * Math.sin(angle - Math.PI / 6),
+      );
+      ctx.lineTo(
+        endX - arrowSize * Math.cos(angle + Math.PI / 6),
+        endY - arrowSize * Math.sin(angle + Math.PI / 6),
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw speed text
+      ctx.font = "10px monospace";
+      ctx.fillText(`${speed.toFixed(0)}`, m.x + 5, m.y - 5);
+    }
+  }
+
+  public addRandomSpeed(marbles: Marble[]): void {
+    for (const m of marbles) {
+      m.vx += Math.random() * 2 - 1;
+      m.vy += Math.random() * 2 - 1;
+    }
   }
 }

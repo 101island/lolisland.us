@@ -9,7 +9,8 @@ export const MARBLE_CONFIG = {
   size: {
     base: 192,
     min: 96,
-    maxScreenRatio: 0.25,
+    marbleCount: 19,
+    marbleArea: 0.5,
   },
 
   // Marble initial speed configuration
@@ -42,6 +43,17 @@ export const MARBLE_CONFIG = {
     repelRadius: 300, // Repulsion radius
     repelForce: 400, // Repulsion force
     attractForce: 600, // Attraction force
+  },
+  // Device motion interaction configuration
+  deviceOrientation: {
+    sensitivity: 600, // Sensitivity
+    maxForce: 6000, // Maximum force limit
+    enable: true,
+  },
+  deviceMotion: {
+    sensitivity: 600, // Sensitivity
+    maxForce: 6000, // Maximum force limit
+    enable: true,
   },
 } as const;
 

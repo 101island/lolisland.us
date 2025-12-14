@@ -54,6 +54,18 @@
       <span class="label-text">Collisions</span>
     </label>
 
+    <label class="toggle-switch" id="device-motion-container">
+      <input type="checkbox" id="device-motion-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">Motion</span>
+    </label>
+
+    <label class="toggle-switch" id="device-orientation-container">
+      <input type="checkbox" id="device-orientation-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">Orientation</span>
+    </label>
+
     <label class="toggle-switch">
       <input type="checkbox" id="background-toggle" checked />
       <span class="slider"></span>
@@ -94,6 +106,12 @@
     background: document.getElementById(
       "background-toggle",
     ) as HTMLInputElement,
+    deviceMotion: document.getElementById(
+      "device-motion-toggle",
+    ) as HTMLInputElement,
+    deviceOrientation: document.getElementById(
+      "device-orientation-toggle",
+    ) as HTMLInputElement,
   };
 
   // Helper to dispatch event
@@ -105,6 +123,16 @@
   if (toggles.collision) {
     toggles.collision.addEventListener("change", (e) =>
       emit("toggle-collision", (e.target as HTMLInputElement).checked),
+    );
+  }
+  if (toggles.deviceMotion) {
+    toggles.deviceMotion.addEventListener("change", (e) =>
+      emit("toggle-device-motion", (e.target as HTMLInputElement).checked),
+    );
+  }
+  if (toggles.deviceOrientation) {
+    toggles.deviceOrientation.addEventListener("change", (e) =>
+      emit("toggle-device-orientation", (e.target as HTMLInputElement).checked),
     );
   }
   if (toggles.title) {

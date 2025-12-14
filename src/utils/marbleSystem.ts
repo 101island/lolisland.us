@@ -291,7 +291,7 @@ export class MarbleSystem {
   // Update marble size (zoom)
   public updateMarbleSize(zoomLevel: number): void {
     this.factory.setZoomLevel(zoomLevel);
-    const size = this.calculateMarbleSize(zoomLevel);
+    const size = this.factory.calculateMarbleSize();
     const radius = size / 2;
 
     for (const m of this.marbles) {
@@ -302,15 +302,6 @@ export class MarbleSystem {
       const { massScale, massOffset } = MARBLE_CONFIG.physics;
       m.mass = radius * radius * massScale + massOffset;
     }
-  }
-
-  // Calculate marble size
-  private calculateMarbleSize(zoomLevel: number): number {
-    const { base, min, maxScreenRatio } = MARBLE_CONFIG.size;
-    const quarter =
-      Math.min(window.innerWidth, window.innerHeight) * maxScreenRatio;
-    const capped = Math.min(base, quarter || base);
-    return Math.max(min, Math.floor(capped)) * zoomLevel;
   }
 
   /**

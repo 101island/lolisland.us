@@ -9,7 +9,8 @@ export const MARBLE_CONFIG = {
   size: {
     base: 192,
     min: 96,
-    maxScreenRatio: 0.25,
+    marbleCount: 19,
+    marbleArea: 0.5,
   },
 
   // Marble initial speed configuration
@@ -57,4 +58,3 @@ export const MARBLE_CONFIG = {
 } as const;
 
 export const AVATAR_BASE_URL = "https://avatar.awfufu.com/qq/";
-

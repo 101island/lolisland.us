@@ -128,6 +128,10 @@ export class DeviceOrientationInteraction {
     return { x: this.ax, y: this.ay };
   }
 
+  public getEnabled(): boolean {
+    return this.config.enable;
+  }
+
   /**
    * Apply Force (Gravity)
    */

@@ -311,6 +311,7 @@ export class MarbleSystem {
   // Toggle collision
   public setCollisions(enabled: boolean): void {
     this.physics.updateConfig({ enableCollisions: enabled });
+    this.physics.addRandomSpeed(this.marbles);
   }
 
   // Toggle debug mode (show velocity vectors)

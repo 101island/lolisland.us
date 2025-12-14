@@ -288,4 +288,11 @@ export class MarblePhysics {
       ctx.fillText(`${speed.toFixed(0)}`, m.x + 5, m.y - 5);
     }
   }
+
+  public addRandomSpeed(marbles: Marble[]): void {
+    for (const m of marbles) {
+      m.vx += Math.random() * 2 - 1;
+      m.vy += Math.random() * 2 - 1;
+    }
+  }
 }

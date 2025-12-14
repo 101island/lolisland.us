@@ -122,15 +122,19 @@ export class MarbleSystem {
 
       // Dynamically adjust sub-steps based on gravity intensity
       // Theory: Less gravity = less force clamping marbles against walls = less tunneling risk
-      if (magnitude == 0.0) {
+      if (magnitude < 2.0) {
         subSteps = 1;
-      } else if (magnitude < 1.0) {
+      } else if (magnitude < 5.0) {
         subSteps = 2;
-      } else if (magnitude < 2.0) {
-        subSteps = 4;
       } else {
-        subSteps = 8;
+        subSteps = 4;
       }
+      const maxMagnitude = 7.0;
+      const exponent = 3;
+      const t = Math.min(magnitude / maxMagnitude, 1.0);
+      const factor = 1 - (2 * t) ** exponent;
+      const minSpeed = MARBLE_CONFIG.physics.minSpeed * Math.max(0, factor);
+      this.physics.updateConfig({ minSpeed: minSpeed });
     }
 
     this.currentSubSteps = subSteps;
@@ -294,6 +298,7 @@ export class MarbleSystem {
       ...this.deviceOrientationInteraction.getDebugInfo(),
       subSteps: this.currentSubSteps,
       kineticEnergy: this.getKineticEnergy(),
+      minSpeed: this.physics.getConfig().minSpeed,
     };
   }
 

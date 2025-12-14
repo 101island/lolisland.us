@@ -244,6 +244,16 @@ export class MarbleSystem {
     return this.marbles.length;
   }
 
+  public getKineticEnergy(): number {
+    let totalKineticEnergy = 0;
+    for (const m of this.marbles) {
+      const speedSq = m.vx * m.vx + m.vy * m.vy;
+      const energy = 0.5 * m.mass * speedSq;
+      totalKineticEnergy += energy;
+    }
+    return totalKineticEnergy;
+  }
+
   // Update marble size (zoom)
   public updateMarbleSize(zoomLevel: number): void {
     this.factory.setZoomLevel(zoomLevel);
@@ -283,6 +293,7 @@ export class MarbleSystem {
     return {
       ...this.deviceOrientationInteraction.getDebugInfo(),
       subSteps: this.currentSubSteps,
+      kineticEnergy: this.getKineticEnergy(),
     };
   }
 

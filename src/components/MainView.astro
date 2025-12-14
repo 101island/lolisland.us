@@ -98,6 +98,7 @@ import Particles from "./Particles.astro";
             <div>Gamma: ${info.gamma}</div>
             <div>Force: ${Math.hypot(parseFloat(info.ax), parseFloat(info.ay)).toFixed(2)}</div>
             <div>SubSteps: ${info.subSteps}</div>
+            <div>T: ${info.kineticEnergy.toFixed(2)}</div>
           `;
         requestAnimationFrame(updateDebug);
       };

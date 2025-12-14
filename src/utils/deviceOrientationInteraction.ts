@@ -7,7 +7,8 @@ import type { Marble } from "./mouseInteraction";
 
 export interface DeviceOrientationConfig {
   sensitivity: number; // Can be used to scale gravity effect slightly, default 1
-  maxForce?: number; // Not strictly needed for gravity, but can limit if physics goes crazy
+  maxForce: number; // Not strictly needed for gravity, but can limit if physics goes crazy
+  enable: boolean;
 }
 
 export class DeviceOrientationInteraction {
@@ -131,7 +132,7 @@ export class DeviceOrientationInteraction {
    * Apply Force (Gravity)
    */
   public applyForce(marbles: Marble[], dt: number): void {
-    if (!this.isActive) return;
+    if (!this.isActive || !this.config.enable) return;
 
     const { sensitivity } = this.config;
 

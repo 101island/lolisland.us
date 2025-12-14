@@ -23,10 +23,12 @@ export interface MarbleSystemConfig {
   deviceOrientationConfig?: {
     sensitivity?: number;
     maxForce?: number;
+    enable?: boolean;
   };
   deviceMotionConfig?: {
     sensitivity?: number;
     maxForce?: number;
+    enable?: boolean;
   };
 }
 
@@ -82,6 +84,9 @@ export class MarbleSystem {
       maxForce:
         config.deviceOrientationConfig?.maxForce ??
         MARBLE_CONFIG.deviceOrientation.maxForce,
+      enable:
+        config.deviceOrientationConfig?.enable ??
+        MARBLE_CONFIG.deviceOrientation.enable,
     });
 
     this.deviceOrientationInteraction.init();
@@ -94,6 +99,8 @@ export class MarbleSystem {
       maxForce:
         config.deviceMotionConfig?.maxForce ??
         MARBLE_CONFIG.deviceMotion.maxForce,
+      enable:
+        config.deviceMotionConfig?.enable ?? MARBLE_CONFIG.deviceMotion.enable,
     });
     this.deviceMotionInteraction.init();
 
@@ -340,6 +347,16 @@ export class MarbleSystem {
   public setCollisions(enabled: boolean): void {
     this.physics.updateConfig({ enableCollisions: enabled });
     this.physics.addRandomSpeed(this.marbles);
+  }
+
+  // Toggle device motion
+  public setDeviceMotion(enabled: boolean): void {
+    this.deviceMotionInteraction.updateConfig({ enable: enabled });
+  }
+
+  // Toggle device orientation
+  public setDeviceOrientation(enabled: boolean): void {
+    this.deviceOrientationInteraction.updateConfig({ enable: enabled });
   }
 
   // Toggle debug mode (show velocity vectors)

@@ -47,11 +47,14 @@ export const MARBLE_CONFIG = {
   deviceOrientation: {
     sensitivity: 600, // Sensitivity
     maxForce: 6000, // Maximum force limit
+    enable: true,
   },
   deviceMotion: {
     sensitivity: 600, // Sensitivity
     maxForce: 6000, // Maximum force limit
+    enable: true,
   },
 } as const;
 
 export const AVATAR_BASE_URL = "https://avatar.awfufu.com/qq/";
+

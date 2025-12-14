@@ -134,6 +134,16 @@ import Particles from "./Particles.astro";
       marbleSystem.setCollisions(e.detail.enabled);
     }) as EventListener);
 
+    // Toggle Device Motion
+    window.addEventListener("toggle-device-motion", ((e: CustomEvent) => {
+      marbleSystem.setDeviceMotion(e.detail.enabled);
+    }) as EventListener);
+
+    // Toggle Device Orientation
+    window.addEventListener("toggle-device-orientation", ((e: CustomEvent) => {
+      marbleSystem.setDeviceOrientation(e.detail.enabled);
+    }) as EventListener);
+
     // Toggle Title
     let titleTimeout: number;
     window.addEventListener("toggle-title", ((e: CustomEvent) => {

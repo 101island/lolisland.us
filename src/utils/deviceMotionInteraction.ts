@@ -8,6 +8,7 @@ import type { Marble } from "./mouseInteraction";
 export interface DeviceMotionConfig {
   sensitivity: number;
   maxForce: number;
+  enable: boolean;
 }
 
 export class DeviceMotionInteraction {
@@ -95,7 +96,7 @@ export class DeviceMotionInteraction {
    * Apply Force
    */
   public applyForce(marbles: Marble[], dt: number): void {
-    if (!this.isActive) return;
+    if (!this.isActive || !this.config.enable) return;
     // Threshold filtering to prevent jitter
     if (Math.abs(this.ax) < 0.5 && Math.abs(this.ay) < 0.5) return;
 

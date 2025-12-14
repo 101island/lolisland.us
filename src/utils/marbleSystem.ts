@@ -141,7 +141,10 @@ export class MarbleSystem {
   private update(dt: number): void {
     let subSteps = 1;
 
-    if (this.deviceOrientationInteraction.hasActiveGravity()) {
+    if (
+      this.deviceOrientationInteraction.hasActiveGravity() &&
+      this.deviceOrientationInteraction.getEnabled()
+    ) {
       const { x, y } = this.deviceOrientationInteraction.getAcceleration();
       const magnitude = Math.hypot(x, y);
 
@@ -154,16 +157,15 @@ export class MarbleSystem {
       } else {
         subSteps = 4;
       }
-      if (this.deviceOrientationInteraction.getEnabled()) {
-        const maxMagnitude = 7.0;
-        const exponent = 3;
-        const t = Math.min(magnitude / maxMagnitude, 1.0);
-        const factor = 1 - (2 * t) ** exponent;
-        const minSpeed = MARBLE_CONFIG.physics.minSpeed * Math.max(0, factor);
-        this.physics.updateConfig({ minSpeed: minSpeed });
-      } else {
-        this.physics.updateConfig({ minSpeed: MARBLE_CONFIG.physics.minSpeed });
-      }
+
+      const maxMagnitude = 7.0;
+      const exponent = 3;
+      const t = Math.min(magnitude / maxMagnitude, 1.0);
+      const factor = 1 - (2 * t) ** exponent;
+      const minSpeed = MARBLE_CONFIG.physics.minSpeed * Math.max(0, factor);
+      this.physics.updateConfig({ minSpeed: minSpeed });
+    } else {
+      this.physics.updateConfig({ minSpeed: MARBLE_CONFIG.physics.minSpeed });
     }
 
     this.currentSubSteps = subSteps;

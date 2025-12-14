@@ -71,7 +71,8 @@ export class DeviceOrientationInteraction {
   public getDebugInfo() {
     return {
       active: this.isActive,
-      supported: this.isSupported(),
+      supported:
+        typeof window !== "undefined" && !!window.DeviceOrientationEvent,
       ax: this.ax.toFixed(2),
       ay: this.ay.toFixed(2),
       alpha: this.alpha?.toFixed(1),
@@ -83,7 +84,7 @@ export class DeviceOrientationInteraction {
   /**
    * Get whether supported and active
    */
-  public isSupported(): boolean {
+  public isActivated(): boolean {
     return this.isActive;
   }
 

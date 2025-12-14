@@ -87,8 +87,13 @@ import Particles from "./Particles.astro";
 
       // 4. Start Debug Info Loop
       const updateDebug = () => {
-        const info = marbleSystem.getDeviceOrientationDebugInfo();
+        const info = marbleSystem.getAllDebugInfo();
         debugEl.innerHTML = `
+            <div>MActive: ${info.motionActive}</div>
+            <div>MSupported: ${info.motionSupported}</div>
+            <div>MAX: ${info.motionAx}</div>
+            <div>MAY: ${info.motionAy}</div>
+            <div>MAForce: ${Math.hypot(parseFloat(info.motionAx), parseFloat(info.motionAy)).toFixed(2)}</div>
             <div>Active: ${info.active}</div>
             <div>Supported: ${info.supported}</div>
             <div>AX: ${info.ax}</div>

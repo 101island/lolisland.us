@@ -3,6 +3,7 @@
 import type { UserEntry } from "../config/marbleConfig";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
 import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
+import { DeviceMotionInteraction } from "./deviceMotionInteraction";
 import { AnimationLoop } from "./animationLoop";
 import { MarbleFactory } from "./marbleFactory";
 import { MarblePhysics } from "./marblePhysics";
@@ -23,6 +24,10 @@ export interface MarbleSystemConfig {
     sensitivity?: number;
     maxForce?: number;
   };
+  deviceMotionConfig?: {
+    sensitivity?: number;
+    maxForce?: number;
+  };
 }
 
 export class MarbleSystem {
@@ -32,6 +37,7 @@ export class MarbleSystem {
   // Subsystems
   private mouseInteraction: MouseInteraction;
   private deviceOrientationInteraction: DeviceOrientationInteraction;
+  private deviceMotionInteraction: DeviceMotionInteraction;
   private physics: MarblePhysics;
   private factory: MarbleFactory;
   private animationLoop: AnimationLoop;
@@ -79,6 +85,18 @@ export class MarbleSystem {
     });
 
     this.deviceOrientationInteraction.init();
+
+    // DeviceMotionInteraction Init
+    this.deviceMotionInteraction = new DeviceMotionInteraction({
+      sensitivity:
+        config.deviceMotionConfig?.sensitivity ??
+        MARBLE_CONFIG.deviceMotion.sensitivity,
+      maxForce:
+        config.deviceMotionConfig?.maxForce ??
+        MARBLE_CONFIG.deviceMotion.maxForce,
+    });
+    this.deviceMotionInteraction.init();
+
     // MarblePhysics Init
     this.physics = new MarblePhysics({
       fieldWidth: this.fieldWidth,
@@ -148,9 +166,14 @@ export class MarbleSystem {
         }
       }
 
-      // Apply device motion force
-      if (this.deviceOrientationInteraction.isSupported()) {
+      // Apply device orientation force
+      if (this.deviceOrientationInteraction.isActivated()) {
         this.deviceOrientationInteraction.applyForce(this.marbles, subDt);
+      }
+
+      // Apply device motion force
+      if (this.deviceMotionInteraction.isActivated()) {
+        this.deviceMotionInteraction.applyForce(this.marbles, subDt);
       }
 
       // Update physics
@@ -290,12 +313,17 @@ export class MarbleSystem {
     return this.deviceOrientationInteraction.requestPermission();
   }
 
+  public async requestDeviceMotionPermission(): Promise<boolean> {
+    return this.deviceMotionInteraction.requestPermission();
+  }
+
   /**
    * Get device motion debug info see also MainView.astro
    */
-  public getDeviceOrientationDebugInfo() {
+  public getAllDebugInfo() {
     return {
       ...this.deviceOrientationInteraction.getDebugInfo(),
+      ...this.deviceMotionInteraction.getDebugInfo(),
       subSteps: this.currentSubSteps,
       kineticEnergy: this.getKineticEnergy(),
       minSpeed: this.physics.getConfig().minSpeed,

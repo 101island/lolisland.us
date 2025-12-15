@@ -192,7 +192,7 @@ export class MarbleSystem {
       // Update physics
       this.physics.updatePositions(this.marbles, subDt);
       this.physics.handleCollisions(this.marbles);
-      this.physics.handleBoundaries(this.marbles);
+      this.physics.resolveVelocities(this.marbles, subDt);
     }
 
     this.physics.render(this.marbles);

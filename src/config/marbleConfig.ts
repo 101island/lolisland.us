@@ -27,7 +27,7 @@ export const MARBLE_CONFIG = {
     restitution: 0.92, // Marble collision restitution coefficient (0-1)
     wallBounce: 0.85, // Wall bounce coefficient (0-1)
     minSpeed: 50, // Minimum speed threshold. Below this value, speed increases to this value: CurrentSpeed *= scale = minSpeed / speed
-    maxSpeed: 800, // Global maximum speed limit, limited in the same way as above
+    maxSpeed: 3200, // Global maximum speed limit, limited in the same way as above
   },
 
   // Animation configuration

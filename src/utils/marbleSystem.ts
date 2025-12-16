@@ -153,9 +153,9 @@ export class MarbleSystem {
       if (magnitude < 2.0) {
         subSteps = 1;
       } else if (magnitude < 5.0) {
-        subSteps = 2;
+        subSteps = 3;
       } else {
-        subSteps = 4;
+        subSteps = 6;
       }
 
       const maxMagnitude = 7.0;

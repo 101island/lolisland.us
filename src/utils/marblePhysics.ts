@@ -122,17 +122,21 @@ export class MarblePhysics {
     const { fieldWidth, fieldHeight } = this.config;
 
     // 1. Determine grid cell size
+    // Using the maximum diameter of any marble ensures we only need to check adjacent cells.
+    // If marbles can vary wildly in size, this might need tuning, but max diameter is safe.
     let maxDiameter = 0;
     for (const m of marbles) {
       if (m.radius * 2 > maxDiameter) maxDiameter = m.radius * 2;
     }
+    // Fallback if no marbles or something goes wrong
     if (maxDiameter === 0) return;
 
     const cellSize = maxDiameter;
     const gridWidth = Math.ceil(fieldWidth / cellSize);
     const gridHeight = Math.ceil(fieldHeight / cellSize);
 
-    // 2. Build Grid
+    // 2. Build the grid
+    // Map: cellIndex -> Particle[]
     const grid = new Map<number, PhysicsMarble[]>();
     const getGridIndex = (x: number, y: number) => {
       const gx = Math.floor(x / cellSize);
@@ -148,10 +152,17 @@ export class MarblePhysics {
       grid.get(index)?.push(m);
     }
 
-    // 3. Solve Collisions
+    // 3. Solve Collisions (Grid-based)
+    // We iterate through each marble, find its cell, and check that cell + neighbors
     for (const i_marble of marbles) {
       const gx = Math.floor(i_marble.x / cellSize);
       const gy = Math.floor(i_marble.y / cellSize);
+
+      // Check 3x3 neighbors (including own cell)
+      // Optimization: We could only check "forward" cells to avoid double checks,
+      // but since we need to resolve for both, and the grid logic is simpler to iterate neighbors:
+      // Standard way to avoid double checking A vs B and B vs A is to check all neighbors
+      // and only resolve if ID(A) < ID(B) or similar check.
 
       for (let nx = gx - 1; nx <= gx + 1; nx++) {
         for (let ny = gy - 1; ny <= gy + 1; ny++) {
@@ -161,8 +172,19 @@ export class MarblePhysics {
           if (!cellMarbles) continue;
 
           for (const j_marble of cellMarbles) {
+            // Avoid self-collision
             if (i_marble === j_marble) continue;
             if (i_marble.id >= j_marble.id) continue; // Check unique pair
+
+            // Avoid double checking: only check if index(i) < index(j)
+            // But here we rely on the object content.
+            // Since marbles is an array, we can check if marbles.indexOf(i) < marbles.indexOf(j)?
+            // That's O(N) inside loop.
+            // Instead, let's just do the check and rely on the fact that if we resolve A vs B,
+            // we might resolve B vs A later.
+            // Ideally: We iterate unique pairs.
+            // Optimization: Only check half-neighborhood?
+            // Or simpler: check all, but only act if i_marble.id < j_marble.id
 
             const a = i_marble;
             const b = j_marble;

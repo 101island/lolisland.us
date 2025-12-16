@@ -153,9 +153,9 @@ export class MarbleSystem {
       if (magnitude < 2.0) {
         subSteps = 1;
       } else if (magnitude < 5.0) {
-        subSteps = 2;
+        subSteps = 3;
       } else {
-        subSteps = 4;
+        subSteps = 6;
       }
 
       const maxMagnitude = 7.0;
@@ -192,7 +192,7 @@ export class MarbleSystem {
       // Update physics
       this.physics.updatePositions(this.marbles, subDt);
       this.physics.handleCollisions(this.marbles);
-      this.physics.handleBoundaries(this.marbles);
+      this.physics.resolveVelocities(this.marbles, subDt);
     }
 
     this.physics.render(this.marbles);

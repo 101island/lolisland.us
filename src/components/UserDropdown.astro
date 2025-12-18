@@ -1,0 +1,188 @@
+<div class="user-dropdown hidden">
+  <button class="user-avatar-btn" aria-label="User Menu">
+    <img src="" alt="User Avatar" class="user-avatar-img">
+  </button>
+  <div class="dropdown-menu">
+    <button class="menu-item logout-btn">Logout</button>
+  </div>
+</div>
+
+<script>
+  const userDropdown = document.querySelector(".user-dropdown") as HTMLElement;
+  const avatarImg = document.querySelector(
+    ".user-avatar-img",
+  ) as HTMLImageElement;
+  const avatarBtn = document.querySelector(
+    ".user-avatar-btn",
+  ) as HTMLButtonElement;
+  const dropdownMenu = document.querySelector(".dropdown-menu") as HTMLElement;
+  const logoutBtn = document.querySelector(".logout-btn") as HTMLButtonElement;
+
+  async function updateAvatar() {
+    let qq = localStorage.getItem("qq");
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      if (!qq) {
+        try {
+          // Fetch user info from backend if token exists but QQ is missing
+          const res = await fetch("https://lolisland.awfufu.com/api/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.qq) {
+              qq = String(data.qq);
+              localStorage.setItem("qq", qq);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch user info", e);
+        }
+      }
+
+      if (qq) {
+        avatarImg.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${qq}&spec=640&img_type=jpg`;
+      } else {
+        // Default avatar or placeholder if QQ is missing and fetch failed
+        avatarImg.src =
+          "https://ui-avatars.com/api/?name=User&background=random";
+      }
+      userDropdown.classList.remove("hidden");
+    } else {
+      userDropdown.classList.add("hidden");
+    }
+  }
+
+  // Initial check
+  updateAvatar();
+
+  // Listen for login success event
+  window.addEventListener("login-success", updateAvatar);
+
+  // Toggle Dropdown
+  if (avatarBtn) {
+    avatarBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdownMenu.classList.toggle("active");
+    });
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (userDropdown && !userDropdown.contains(e.target as Node)) {
+      dropdownMenu.classList.remove("active");
+    }
+  });
+
+  // Logout
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("qq");
+      userDropdown.classList.add("hidden");
+      dropdownMenu.classList.remove("active");
+      // Notify other components if necessary, e.g. show login button again
+      window.dispatchEvent(new CustomEvent("logout-success"));
+    });
+  }
+</script>
+
+<style>
+  .user-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hidden {
+    /* biome-ignore lint/complexity/noImportantStyles: utility class */
+    display: none !important;
+  }
+
+  .user-avatar-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    overflow: hidden;
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .user-avatar-btn:hover {
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+
+  .user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    background: rgba(15, 15, 15, 0.75); /* Dark semi-transparent */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 0.6rem;
+    min-width: 140px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .dropdown-menu.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center text */
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.02)
+    );
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .menu-item:hover {
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.06)
+    );
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+</style>

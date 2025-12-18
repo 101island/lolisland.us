@@ -1,0 +1,175 @@
+<div id="view-qq-input" class="login-window fade-in hidden">
+  <button class="close-btn" data-action="close">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <h2>QQ Login</h2>
+  <p class="instruction">Enter your QQ id to start</p>
+  <input type="text" id="qq-id-input" placeholder="QQ" class="input-field">
+  <button id="btn-qq-next" class="submit-btn">Next</button>
+  <button class="back-text-btn" data-target="view-login">Back to Login</button>
+  <p class="error-msg hidden" id="qq-error"></p>
+</div>
+
+<style>
+  .hidden {
+    /* biome-ignore lint/complexity/noImportantStyles: utility class */
+    display: none !important;
+  }
+  .login-window {
+    padding: 2rem 2.4rem;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.04)
+    );
+    backdrop-filter: blur(6px);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 10px 40px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    width: 640px; /* Doubled width */
+    max-width: 90vw;
+    pointer-events: auto;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition:
+      background 0.2s,
+      color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.8rem;
+    color: #f7f7ff; /* var(--text) */
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .instruction {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+    margin-bottom: 1rem;
+    font-family:
+      monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New";
+    text-align: center; /* Center input text */
+  }
+  .input-field:focus {
+    border-color: rgba(124, 251, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .input-field::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05)
+    );
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.5rem;
+  }
+  .submit-btn:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.2),
+      rgba(255, 255, 255, 0.1)
+    );
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .back-text-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    text-decoration: underline;
+  }
+  .back-text-btn:hover {
+    color: white;
+  }
+
+  .error-msg {
+    color: #ff6b6b;
+    margin-top: 10px;
+    font-size: 0.9rem;
+  }
+  .fade-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

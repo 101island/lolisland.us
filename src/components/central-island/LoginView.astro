@@ -1,9 +1,9 @@
 ---
-import qqIcon from "../assets/icons/qq.svg?raw";
+import qqIconRaw from "../../assets/icons/qq.svg?raw";
 ---
 
-<div class="login-window">
-  <button class="close-btn" aria-label="Close Login">
+<div id="view-login" class="login-window fade-in hidden">
+  <button class="close-btn" data-action="close">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="24"
@@ -19,39 +19,36 @@ import qqIcon from "../assets/icons/qq.svg?raw";
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
+  <h2>Login</h2>
+  <input
+    type="text"
+    id="login-username"
+    placeholder="Username"
+    class="input-field"
+  >
+  <input
+    type="password"
+    id="login-password"
+    placeholder="Password"
+    class="input-field"
+  >
+  <button id="btn-login-submit" class="submit-btn">Login</button>
 
-  <div class="login-form">
-    <h2>Login</h2>
-    <input type="text" placeholder="Username" class="input-field" />
-    <input type="password" placeholder="Password" class="input-field" />
-
-    <button class="qq-btn" aria-label="Login with QQ" set:html={qqIcon} />
+  <div class="divider">
+    <span>OR</span>
   </div>
+
+  <button id="btn-qq-mode" class="qq-btn" title="Login with QQ">
+    <span set:html={qqIconRaw} style="display: flex; align-items: center;"/>
+  </button>
+  <p class="error-msg hidden" id="login-error"></p>
 </div>
 
-<script>
-  const loginWindow = document.querySelector(".login-window") as HTMLElement;
-  const closeBtn = document.querySelector(".close-btn");
-
-  /* Input Validation */
-  const inputs = document.querySelectorAll(
-    ".input-field",
-  ) as NodeListOf<HTMLInputElement>;
-  inputs.forEach((input) => {
-    input.addEventListener("input", () => {
-      // Allow only a-z, A-Z, 0-9, -, _, @, .
-      input.value = input.value.replace(/[^a-zA-Z0-9\-_@\.]/g, "");
-    });
-  });
-
-  if (loginWindow && closeBtn) {
-    closeBtn.addEventListener("click", () => {
-      window.dispatchEvent(new CustomEvent("close-login"));
-    });
-  }
-</script>
-
 <style>
+  .hidden {
+    /* biome-ignore lint/complexity/noImportantStyles: utility class */
+    display: none !important;
+  }
   .login-window {
     padding: 2rem 2.4rem;
     border-radius: 22px;
@@ -65,32 +62,12 @@ import qqIcon from "../assets/icons/qq.svg?raw";
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.08),
       0 10px 40px rgba(0, 0, 0, 0.5);
-    display: inline-block;
-    width: auto;
-    min-width: 300px;
-    max-width: 90vw;
     position: relative;
     overflow: hidden;
-    pointer-events: none; /* Initially hidden interaction */
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.5s ease;
     text-align: center;
-  }
-
-  /* Shared with Title Card for consistency if needed, but defining locally */
-  .login-window::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 22px;
-    background: linear-gradient(
-      120deg,
-      rgba(124, 251, 255, 0.06),
-      rgba(255, 127, 209, 0.05),
-      rgba(255, 209, 102, 0.05)
-    );
-    z-index: -1;
+    width: 640px; /* Doubled width */
+    max-width: 90vw;
+    pointer-events: auto;
   }
 
   .close-btn {
@@ -110,7 +87,6 @@ import qqIcon from "../assets/icons/qq.svg?raw";
     align-items: center;
     justify-content: center;
   }
-
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: white;
@@ -119,15 +95,8 @@ import qqIcon from "../assets/icons/qq.svg?raw";
   h2 {
     margin: 0 0 1.5rem 0;
     font-size: 1.8rem;
-    color: var(--text);
+    color: #f7f7ff; /* var(--text) */
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  }
-
-  .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
   }
 
   .input-field {
@@ -142,24 +111,73 @@ import qqIcon from "../assets/icons/qq.svg?raw";
     transition:
       border-color 0.2s,
       background 0.2s;
+    margin-bottom: 1rem;
     font-family:
       monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New";
+    text-align: center; /* Center input text */
   }
-
   .input-field:focus {
     border-color: rgba(124, 251, 255, 0.5);
     background: rgba(0, 0, 0, 0.3);
   }
-
   .input-field::placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
 
-  .qq-btn {
+  .submit-btn {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05)
+    );
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: 0.5rem;
-    width: 48px;
-    height: 48px;
+  }
+  .submit-btn:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.2),
+      rgba(255, 255, 255, 0.1)
+    );
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 1rem 0;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+  }
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .divider span {
+    padding: 0 10px;
+  }
+
+  .qq-btn {
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: linear-gradient(
@@ -169,14 +187,13 @@ import qqIcon from "../assets/icons/qq.svg?raw";
     );
     color: white;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition:
       transform 0.2s,
       background 0.2s;
   }
-
   .qq-btn:hover {
     transform: translateY(-2px);
     background: linear-gradient(
@@ -185,10 +202,26 @@ import qqIcon from "../assets/icons/qq.svg?raw";
       rgba(255, 255, 255, 0.08)
     );
   }
-
   .qq-btn :global(svg) {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
+    width: 40px;
+    height: 40px;
+  }
+  .error-msg {
+    color: #ff6b6b;
+    margin-top: 10px;
+    font-size: 0.9rem;
+  }
+  .fade-in {
+    animation: fadeIn 0.5s ease forwards;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>

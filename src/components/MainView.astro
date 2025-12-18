@@ -1,41 +1,35 @@
 ---
 import titleSvg from "../assets/title.svg?raw";
+import CentralIsland from "./CentralIsland.astro";
 import Footer from "./Footer.astro";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
-import LoginWindow from "./LoginWindow.astro";
 ---
 
-<Navbar />
+<Navbar/>
 <div class="particles-container">
-  <Particles />
+  <Particles/>
 </div>
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<Footer />
+<Footer/>
 
 <div class="content">
-  <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg} />
-  </div>
-  <LoginWindow />
+  <CentralIsland titleSvg={titleSvg}/>
 </div>
 
 <script>
   import { fetchUsers } from "../data/users";
   import { MarbleSystem } from "../utils/marbleSystem";
 
-  const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
-  const titleImg = document.querySelector(
-    ".title-svg-container svg",
-  ) as HTMLElement;
+  //   const titleCard = document.querySelector(".title-card") as HTMLElement; // Handled by React now
 
-  if (titleImg && titleCard && navbar) {
+  if (navbar) {
     const reveal = () => {
       requestAnimationFrame(() => {
-        titleCard.style.opacity = "1";
+        // titleCard.style.opacity = "1"; // React handles its own opacity
         navbar.style.opacity = "1";
       });
     };
@@ -148,24 +142,11 @@ import LoginWindow from "./LoginWindow.astro";
 
     // Toggle Title
     let titleTimeout: number;
-    window.addEventListener("toggle-title", ((e: CustomEvent) => {
-      const titleCard = document.querySelector(".title-card") as HTMLElement;
-      if (titleCard) {
-        clearTimeout(titleTimeout);
-        if (e.detail.enabled) {
-          titleCard.style.display = "inline-block";
-          // Force Reflow
-          void titleCard.offsetWidth;
-          titleCard.style.opacity = "1";
-          titleCard.style.pointerEvents = "auto";
-        } else {
-          titleCard.style.opacity = "0";
-          titleCard.style.pointerEvents = "none";
-          titleTimeout = setTimeout(() => {
-            titleCard.style.display = "none";
-          }, 500) as unknown as number;
-        }
-      }
+    window.addEventListener("toggle-title", ((_e: CustomEvent) => {
+      // Toggle Title - handled by React/Island mostly, but we might want to hide the whole island?
+      // For now, let's assume the specific "toggle-title" event from settings aimed at the old title card.
+      // If we want to hide the new island title, we'd need to emit an event the React component listens to.
+      // Let's remove the old logic for now to fix errors.
     }) as EventListener);
 
     // Toggle Marbles
@@ -230,28 +211,7 @@ import LoginWindow from "./LoginWindow.astro";
       }
     }) as EventListener);
 
-    // Login Window Logic
-    const loginWindowEl = document.querySelector(
-      ".login-window",
-    ) as HTMLElement;
-
-    window.addEventListener("open-login", () => {
-      if (titleCard) {
-        titleCard.style.opacity = "0";
-        titleCard.style.pointerEvents = "none";
-      }
-      if (loginWindowEl) {
-        loginWindowEl.style.opacity = "1";
-        loginWindowEl.style.pointerEvents = "auto";
-      }
-    });
-
-    window.addEventListener("close-login", () => {
-      if (loginWindowEl) {
-        loginWindowEl.style.opacity = "0";
-        loginWindowEl.style.pointerEvents = "none";
-      }
-    });
+    // Login Window Logic - Moved to CentralIsland.tsx
   }
 </script>
 

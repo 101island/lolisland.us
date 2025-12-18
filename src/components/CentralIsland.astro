@@ -1,0 +1,326 @@
+---
+import DashboardView from "./central-island/DashboardView.astro";
+import LoginView from "./central-island/LoginView.astro";
+import QQAuthView from "./central-island/QQAuthView.astro";
+import RegisterView from "./central-island/RegisterView.astro";
+import TitleCard from "./central-island/TitleCard.astro";
+import VerificationView from "./central-island/VerificationView.astro";
+
+// Props for the component
+const { titleSvg } = Astro.props;
+---
+
+<div class="island-container">
+  <TitleCard titleSvg={titleSvg}/>
+  <LoginView/>
+  <QQAuthView/>
+  <VerificationView/>
+  <RegisterView/>
+  <DashboardView/>
+</div>
+
+<script>
+  const API_BASE = "https://lolisland.awfufu.com/api";
+  let isLoggedIn = false;
+  let currentQQ = "";
+  let pollIntervalId: string | number | NodeJS.Timeout | null | undefined =
+    null;
+
+  // DOM Elements
+  const views = {
+    title: document.getElementById("view-title"),
+    login: document.getElementById("view-login"),
+    qqInput: document.getElementById("view-qq-input"),
+    verification: document.getElementById("view-verification"),
+    register: document.getElementById("view-register"),
+    dashboard: document.getElementById("view-dashboard"),
+  };
+
+  type ViewName = keyof typeof views;
+
+  // Inputs
+  const inputs = {
+    loginUser: document.getElementById("login-username") as HTMLInputElement,
+    loginPass: document.getElementById("login-password") as HTMLInputElement,
+    qqId: document.getElementById("qq-id-input") as HTMLInputElement,
+    regUser: document.getElementById("reg-username") as HTMLInputElement,
+    regPass: document.getElementById("reg-password") as HTMLInputElement,
+  };
+
+  // Displays
+  const displays = {
+    loginError: document.getElementById("login-error"),
+    qqError: document.getElementById("qq-error"),
+    regError: document.getElementById("reg-error"),
+    verifyCode: document.getElementById("verification-code-display"),
+    dashAvatar: document.getElementById(
+      "dashboard-avatar-img",
+    ) as HTMLImageElement,
+  };
+
+  // --- Helpers ---
+  function switchView(viewName: string) {
+    Object.values(views).forEach((el) => {
+      if (el) el.classList.add("hidden");
+    });
+    // Safe check if viewName is a valid key, otherwise ignore
+    if (Object.hasOwn(views, viewName)) {
+      const el = views[viewName as ViewName];
+      if (el) el.classList.remove("hidden");
+    }
+    window.dispatchEvent(
+      new CustomEvent("view-change", { detail: { view: viewName } }),
+    );
+  }
+
+  function showError(element: HTMLElement | null, msg: string) {
+    if (element) {
+      element.textContent = msg;
+      element.classList.remove("hidden");
+    }
+  }
+
+  function clearErrors() {
+    if (displays.loginError) displays.loginError.classList.add("hidden");
+    if (displays.qqError) displays.qqError.classList.add("hidden");
+    if (displays.regError) displays.regError.classList.add("hidden");
+  }
+
+  function updateDashboard() {
+    if (displays.dashAvatar) {
+      if (currentQQ) {
+        displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
+      } else {
+        displays.dashAvatar.src =
+          "https://ui-avatars.com/api/?name=User&background=random";
+      }
+    }
+  }
+
+  function handleLoginSuccess(token: string, qq: string) {
+    localStorage.setItem("token", token);
+    if (qq) {
+      localStorage.setItem("qq", String(qq));
+      currentQQ = String(qq);
+    }
+    isLoggedIn = true;
+    updateDashboard();
+    window.dispatchEvent(new CustomEvent("login-success"));
+    switchView("dashboard");
+  }
+
+  // --- Auth Logic ---
+  async function performLogin() {
+    const u = inputs.loginUser?.value;
+    const p = inputs.loginPass?.value;
+    if (!u || !p)
+      return showError(displays.loginError, "Please fill all fields");
+
+    clearErrors();
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        handleLoginSuccess(data.token, data.qq);
+        if (inputs.loginUser) inputs.loginUser.value = "";
+        if (inputs.loginPass) inputs.loginPass.value = "";
+      } else {
+        showError(displays.loginError, data.error || "Login failed");
+      }
+    } catch (e) {
+      showError(displays.loginError, "Network error");
+    }
+  }
+
+  async function startQQAuth() {
+    const qq = inputs.qqId?.value;
+    if (!qq) return showError(displays.qqError, "Enter your QQ");
+
+    clearErrors();
+    try {
+      const res = await fetch(`${API_BASE}/auth/qq/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qq }),
+      });
+      const data = await res.json();
+      if (data.code) {
+        if (displays.verifyCode) displays.verifyCode.textContent = data.code;
+        currentQQ = qq;
+        switchView("verification");
+        startPolling(qq);
+      } else {
+        showError(displays.qqError, data.error || "Failed to start auth");
+      }
+    } catch (e) {
+      showError(displays.qqError, "Network error");
+    }
+  }
+
+  function startPolling(qqToPoll: string) {
+    if (pollIntervalId) clearInterval(pollIntervalId);
+    pollIntervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/qq/status?qq=${qqToPoll}`);
+        const data = await res.json();
+
+        if (data.status === "verified") {
+          clearInterval(pollIntervalId as NodeJS.Timeout);
+          pollIntervalId = null;
+          switchView("register");
+        } else if (data.status === "authenticated") {
+          clearInterval(pollIntervalId as NodeJS.Timeout);
+          pollIntervalId = null;
+          handleLoginSuccess(data.token, data.qq);
+        }
+      } catch (e) {
+        console.error("Polling error", e);
+      }
+    }, 2000);
+  }
+
+  async function performRegister() {
+    const u = inputs.regUser?.value;
+    const p = inputs.regPass?.value;
+    if (!u || !p) return showError(displays.regError, "Please fill all fields");
+
+    clearErrors();
+    try {
+      const res = await fetch(`${API_BASE}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p, qq: currentQQ }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const loginRes = await fetch(`${API_BASE}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+        const loginData = await loginRes.json();
+        if (loginData.token) {
+          handleLoginSuccess(loginData.token, loginData.qq);
+        } else {
+          switchView("login");
+        }
+      } else {
+        showError(displays.regError, data.error || "Registration failed");
+      }
+    } catch (e) {
+      showError(displays.regError, "Network error");
+    }
+  }
+
+  // --- Initialization ---
+  function checkLoginState() {
+    const token = localStorage.getItem("token");
+    const storedQQ = localStorage.getItem("qq");
+    isLoggedIn = !!token;
+    if (storedQQ) currentQQ = storedQQ;
+
+    if (isLoggedIn) {
+      updateDashboard();
+      switchView("dashboard");
+    } else {
+      switchView("title");
+    }
+  }
+
+  // --- Event Listeners ---
+  // Note: Elements might be null if not yet rendered/loaded by Astro in some edge cases but usually fine.
+  // Actually, since sub-components are static Astro components, they are rendered in HTML immediately.
+  // So standard document.getElementById works.
+
+  if (views.title) {
+    views.title.addEventListener("click", () => {
+      if (isLoggedIn) {
+        switchView("dashboard");
+      } else {
+        switchView("login");
+      }
+    });
+  }
+
+  // Use event delegation or re-attach logic for close buttons
+  // Since we replaced HTML blocks with components, the close buttons are now inside those components.
+  // They still have data-action="close"
+  document.querySelectorAll('[data-action="close"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      switchView("title");
+      if (pollIntervalId) clearInterval(pollIntervalId as NodeJS.Timeout);
+      clearErrors();
+    });
+  });
+
+  document
+    .getElementById("btn-login-submit")
+    ?.addEventListener("click", performLogin);
+  document
+    .getElementById("btn-qq-mode")
+    ?.addEventListener("click", () => switchView("qqInput"));
+  document
+    .getElementById("btn-qq-next")
+    ?.addEventListener("click", startQQAuth);
+  document
+    .getElementById("btn-cancel-verify")
+    ?.addEventListener("click", () => {
+      if (pollIntervalId) clearInterval(pollIntervalId as NodeJS.Timeout);
+      switchView("qqInput");
+    });
+  document
+    .getElementById("btn-register-submit")
+    ?.addEventListener("click", performRegister);
+
+  document.querySelectorAll(".back-text-btn").forEach((btn) => {
+    const target = btn.getAttribute("data-target");
+    if (target) {
+      btn.addEventListener("click", () => {
+        switchView(target === "view-login" ? "login" : "title");
+        clearErrors();
+      });
+    }
+  });
+
+  window.addEventListener("open-login", () => {
+    if (isLoggedIn) {
+      switchView("dashboard");
+    } else {
+      switchView("login");
+    }
+  });
+
+  window.addEventListener("login-success", () => {
+    const token = localStorage.getItem("token");
+    isLoggedIn = !!token;
+    const storedQQ = localStorage.getItem("qq");
+    if (storedQQ) currentQQ = storedQQ;
+    updateDashboard();
+    if (isLoggedIn) switchView("dashboard");
+  });
+
+  window.addEventListener("logout-success", () => {
+    isLoggedIn = false;
+    currentQQ = "";
+    localStorage.removeItem("token");
+    localStorage.removeItem("qq");
+    switchView("title");
+  });
+
+  checkLoginState();
+</script>
+
+<style>
+  .island-container {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+  }
+</style>

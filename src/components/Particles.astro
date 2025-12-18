@@ -73,18 +73,27 @@
       particles.push(new Particle());
     }
 
-    const animate = () => {
+    let animationId: number;
+    let isPaused = false;
+
+    const startAnimation = () => {
+      // Clear canvas
       ctx.clearRect(0, 0, width, height);
 
+      // Update and draw particles
       particles.forEach((p) => {
         p.update();
         p.draw();
       });
 
-      requestAnimationFrame(animate);
+      // Continue loop if not paused
+      if (!isPaused) {
+        animationId = requestAnimationFrame(startAnimation);
+      }
     };
 
-    animate();
+    // Start initial animation
+    startAnimation();
 
     window.addEventListener("resize", () => {
       width = window.innerWidth;
@@ -92,5 +101,18 @@
       canvas.width = width;
       canvas.height = height;
     });
+
+    // Pause/Resume Logic
+    window.addEventListener("toggle-background", ((e: CustomEvent) => {
+      if (e.detail.enabled) {
+        if (isPaused) {
+          isPaused = false;
+          startAnimation();
+        }
+      } else {
+        isPaused = true;
+        cancelAnimationFrame(animationId);
+      }
+    }) as EventListener);
   }
 </script>

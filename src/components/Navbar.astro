@@ -9,7 +9,7 @@ import titleImg from "../assets/title.svg";
     class="nav-title"
     height="32"
     style="height: 32px; width: auto;"
-  >
+  />
   <a
     href="https://github.com/101island"
     target="_blank"
@@ -30,6 +30,24 @@ import titleImg from "../assets/title.svg";
       ></path>
     </svg>
   </a>
+
+  <button class="user-login-btn" aria-label="Login">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="user-icon"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+    </svg>
+  </button>
 </nav>
 
 <style>
@@ -64,9 +82,30 @@ import titleImg from "../assets/title.svg";
       transform 0.2s;
     display: flex;
     align-items: center;
+    margin-left: auto; /* Push to right */
+    margin-right: 1.5rem; /* Gap between github and user */
   }
 
   .github-link:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .user-login-btn {
+    background: none;
+    border: none;
+    color: white;
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition:
+      opacity 0.2s,
+      transform 0.2s;
+  }
+
+  .user-login-btn:hover {
     opacity: 1;
     transform: scale(1.1);
   }
@@ -90,5 +129,12 @@ import titleImg from "../assets/title.svg";
     } else {
       navTitle.addEventListener("load", reveal);
     }
+  }
+
+  const loginBtn = document.querySelector(".user-login-btn");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("open-login"));
+    });
   }
 </script>

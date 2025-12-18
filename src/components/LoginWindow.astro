@@ -1,0 +1,194 @@
+---
+import qqIcon from "../assets/icons/qq.svg?raw";
+---
+
+<div class="login-window">
+  <button class="close-btn" aria-label="Close Login">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+
+  <div class="login-form">
+    <h2>Login</h2>
+    <input type="text" placeholder="Username" class="input-field" />
+    <input type="password" placeholder="Password" class="input-field" />
+
+    <button class="qq-btn" aria-label="Login with QQ" set:html={qqIcon} />
+  </div>
+</div>
+
+<script>
+  const loginWindow = document.querySelector(".login-window") as HTMLElement;
+  const closeBtn = document.querySelector(".close-btn");
+
+  /* Input Validation */
+  const inputs = document.querySelectorAll(
+    ".input-field",
+  ) as NodeListOf<HTMLInputElement>;
+  inputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      // Allow only a-z, A-Z, 0-9, -, _, @, .
+      input.value = input.value.replace(/[^a-zA-Z0-9\-_@\.]/g, "");
+    });
+  });
+
+  if (loginWindow && closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("close-login"));
+    });
+  }
+</script>
+
+<style>
+  .login-window {
+    padding: 2rem 2.4rem;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.04)
+    );
+    backdrop-filter: blur(6px);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 10px 40px rgba(0, 0, 0, 0.5);
+    display: inline-block;
+    width: auto;
+    min-width: 300px;
+    max-width: 90vw;
+    position: relative;
+    overflow: hidden;
+    pointer-events: none; /* Initially hidden interaction */
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    text-align: center;
+  }
+
+  /* Shared with Title Card for consistency if needed, but defining locally */
+  .login-window::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 22px;
+    background: linear-gradient(
+      120deg,
+      rgba(124, 251, 255, 0.06),
+      rgba(255, 127, 209, 0.05),
+      rgba(255, 209, 102, 0.05)
+    );
+    z-index: -1;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition:
+      background 0.2s,
+      color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.8rem;
+    color: var(--text);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+    font-family:
+      monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New";
+  }
+
+  .input-field:focus {
+    border-color: rgba(124, 251, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .input-field::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .qq-btn {
+    margin-top: 0.5rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.04)
+    );
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      transform 0.2s,
+      background 0.2s;
+  }
+
+  .qq-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.16),
+      rgba(255, 255, 255, 0.08)
+    );
+  }
+
+  .qq-btn :global(svg) {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+</style>

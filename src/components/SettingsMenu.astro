@@ -210,6 +210,41 @@
         menu.classList.remove("active");
       }
     });
+
+    // Login Window Logic Integration
+    let titlePrevState = true;
+
+    window.addEventListener("open-login", () => {
+      // When login opens:
+      // 1. Save current title toggle state
+      // 2. Force title toggle to OFF (unchecked)
+      // 3. Disable title toggle (and UI)
+      if (toggles.title) {
+        titlePrevState = toggles.title.checked;
+        toggles.title.checked = false;
+        toggles.title.disabled = true;
+
+        const parent = toggles.title.parentElement;
+        if (parent) parent.classList.add("disabled");
+      }
+    });
+
+    window.addEventListener("close-login", () => {
+      // When login closes:
+      // 1. Enable title toggle
+      // 2. Restore previous state
+      // 3. Emit toggle-title event to let MainView know what to do
+      if (toggles.title) {
+        toggles.title.disabled = false;
+        const parent = toggles.title.parentElement;
+        if (parent) parent.classList.remove("disabled");
+
+        toggles.title.checked = titlePrevState;
+
+        // Important: Tell MainView to restore the title card if it was previously enabled
+        emit("toggle-title", titlePrevState);
+      }
+    });
   }
 </script>
 

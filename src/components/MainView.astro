@@ -3,6 +3,7 @@ import titleSvg from "../assets/title.svg?raw";
 import Footer from "./Footer.astro";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
+import LoginWindow from "./LoginWindow.astro";
 ---
 
 <Navbar />
@@ -18,6 +19,7 @@ import Particles from "./Particles.astro";
   <div class="title-card">
     <div class="title-svg-container" set:html={titleSvg} />
   </div>
+  <LoginWindow />
 </div>
 
 <script>
@@ -227,6 +229,29 @@ import Particles from "./Particles.astro";
         }, 500) as unknown as number;
       }
     }) as EventListener);
+
+    // Login Window Logic
+    const loginWindowEl = document.querySelector(
+      ".login-window",
+    ) as HTMLElement;
+
+    window.addEventListener("open-login", () => {
+      if (titleCard) {
+        titleCard.style.opacity = "0";
+        titleCard.style.pointerEvents = "none";
+      }
+      if (loginWindowEl) {
+        loginWindowEl.style.opacity = "1";
+        loginWindowEl.style.pointerEvents = "auto";
+      }
+    });
+
+    window.addEventListener("close-login", () => {
+      if (loginWindowEl) {
+        loginWindowEl.style.opacity = "0";
+        loginWindowEl.style.pointerEvents = "none";
+      }
+    });
   }
 </script>
 
@@ -287,6 +312,10 @@ import Particles from "./Particles.astro";
     padding: 2rem;
     text-align: center;
     pointer-events: none;
+  }
+
+  .content > :global(*) {
+    grid-area: 1 / 1;
   }
 
   .title-card {

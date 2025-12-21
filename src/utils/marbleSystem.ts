@@ -36,6 +36,9 @@ export class MarbleSystem {
   private container: HTMLElement;
   private marbles: Marble[] = [];
 
+  // Mouse interaction enabled state
+  private mouseInteractionEnabled: boolean = true;
+
   // Subsystems
   private mouseInteraction: MouseInteraction;
   private deviceOrientationInteraction: DeviceOrientationInteraction;
@@ -173,7 +176,7 @@ export class MarbleSystem {
 
     for (let i = 0; i < subSteps; i++) {
       // Apply mouse force field
-      if (this.mouseInteractionEnabled) {     //mouse-interavtion-trigger controll
+      if (this.mouseInteractionEnabled) {     //mouse-interaction-trigger controll
         for (const marble of this.marbles) {
           if (this.mouseInteraction.shouldApplyForce(marble)) {
             this.mouseInteraction.applyForce(marble, subDt);
@@ -357,9 +360,6 @@ export class MarbleSystem {
   public setDeviceOrientation(enabled: boolean): void {
     this.deviceOrientationInteraction.updateConfig({ enable: enabled });
   }
-
-  // Mouse interaction enabled state
-  private mouseInteractionEnabled: boolean = true;
 
   // Toggle mouse interaction
   public setMouseInteraction(enabled: boolean): void {

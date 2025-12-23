@@ -1,6 +1,6 @@
 <div class="user-dropdown hidden">
   <button class="user-avatar-btn" aria-label="User Menu">
-    <img src="" alt="User Avatar" class="user-avatar-img">
+    <img src="" alt="User Avatar" class="user-avatar-img" />
   </button>
   <div class="dropdown-menu">
     <button class="menu-item logout-btn">Logout</button>
@@ -8,6 +8,7 @@
 </div>
 
 <script>
+  import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
   const userDropdown = document.querySelector(".user-dropdown") as HTMLElement;
   const avatarImg = document.querySelector(
     ".user-avatar-img",
@@ -26,7 +27,7 @@
       if (!qq) {
         try {
           // Fetch user info from backend if token exists but QQ is missing
-          const res = await fetch("https://lolisland.awfufu.com/api/me", {
+          const res = await fetch(BACKEND_API_BASE + "/me", {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {

@@ -11,16 +11,16 @@ const { titleSvg } = Astro.props;
 ---
 
 <div class="island-container">
-  <TitleCard titleSvg={titleSvg}/>
-  <LoginView/>
-  <QQAuthView/>
-  <VerificationView/>
-  <RegisterView/>
-  <DashboardView/>
+  <TitleCard titleSvg={titleSvg} />
+  <LoginView />
+  <QQAuthView />
+  <VerificationView />
+  <RegisterView />
+  <DashboardView />
 </div>
 
 <script>
-  const API_BASE = "https://lolisland.awfufu.com/api";
+  import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
   let isLoggedIn = false;
   let currentQQ = "";
   let pollIntervalId: string | number | NodeJS.Timeout | null | undefined =
@@ -118,7 +118,7 @@ const { titleSvg } = Astro.props;
 
     clearErrors();
     try {
-      const res = await fetch(`${API_BASE}/login`, {
+      const res = await fetch(`${BACKEND_API_BASE}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: u, password: p }),
@@ -142,7 +142,7 @@ const { titleSvg } = Astro.props;
 
     clearErrors();
     try {
-      const res = await fetch(`${API_BASE}/auth/qq/start`, {
+      const res = await fetch(`${BACKEND_API_BASE}/auth/qq/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qq }),
@@ -165,7 +165,9 @@ const { titleSvg } = Astro.props;
     if (pollIntervalId) clearInterval(pollIntervalId);
     pollIntervalId = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE}/auth/qq/status?qq=${qqToPoll}`);
+        const res = await fetch(
+          `${BACKEND_API_BASE}/auth/qq/status?qq=${qqToPoll}`,
+        );
         const data = await res.json();
 
         if (data.status === "verified") {
@@ -190,14 +192,14 @@ const { titleSvg } = Astro.props;
 
     clearErrors();
     try {
-      const res = await fetch(`${API_BASE}/register`, {
+      const res = await fetch(`${BACKEND_API_BASE}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: u, password: p, qq: currentQQ }),
       });
       const data = await res.json();
       if (res.ok) {
-        const loginRes = await fetch(`${API_BASE}/login`, {
+        const loginRes = await fetch(`${BACKEND_API_BASE}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: u, password: p }),

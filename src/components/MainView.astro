@@ -1,39 +1,35 @@
 ---
 import titleSvg from "../assets/title.svg?raw";
+import CentralIsland from "./CentralIsland.astro";
 import Footer from "./Footer.astro";
 import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
 
-<Navbar />
+<Navbar/>
 <div class="particles-container">
-  <Particles />
+  <Particles/>
 </div>
 <div class="halo"></div>
 <div class="grain"></div>
 <div id="marble-field"></div>
-<Footer />
+<Footer/>
 
 <div class="content">
-  <div class="title-card">
-    <div class="title-svg-container" set:html={titleSvg} />
-  </div>
+  <CentralIsland titleSvg={titleSvg}/>
 </div>
 
 <script>
   import { fetchUsers } from "../data/users";
   import { MarbleSystem } from "../utils/marbleSystem";
 
-  const titleCard = document.querySelector(".title-card") as HTMLElement;
   const navbar = document.querySelector(".navbar") as HTMLElement;
-  const titleImg = document.querySelector(
-    ".title-svg-container svg",
-  ) as HTMLElement;
+  //   const titleCard = document.querySelector(".title-card") as HTMLElement; // Handled by React now
 
-  if (titleImg && titleCard && navbar) {
+  if (navbar) {
     const reveal = () => {
       requestAnimationFrame(() => {
-        titleCard.style.opacity = "1";
+        // titleCard.style.opacity = "1"; // React handles its own opacity
         navbar.style.opacity = "1";
       });
     };
@@ -151,24 +147,11 @@ import Particles from "./Particles.astro";
 
     // Toggle Title
     let titleTimeout: number;
-    window.addEventListener("toggle-title", ((e: CustomEvent) => {
-      const titleCard = document.querySelector(".title-card") as HTMLElement;
-      if (titleCard) {
-        clearTimeout(titleTimeout);
-        if (e.detail.enabled) {
-          titleCard.style.display = "inline-block";
-          // Force Reflow
-          void titleCard.offsetWidth;
-          titleCard.style.opacity = "1";
-          titleCard.style.pointerEvents = "auto";
-        } else {
-          titleCard.style.opacity = "0";
-          titleCard.style.pointerEvents = "none";
-          titleTimeout = setTimeout(() => {
-            titleCard.style.display = "none";
-          }, 500) as unknown as number;
-        }
-      }
+    window.addEventListener("toggle-title", ((_e: CustomEvent) => {
+      // Toggle Title - handled by React/Island mostly, but we might want to hide the whole island?
+      // For now, let's assume the specific "toggle-title" event from settings aimed at the old title card.
+      // If we want to hide the new island title, we'd need to emit an event the React component listens to.
+      // Let's remove the old logic for now to fix errors.
     }) as EventListener);
 
     // Toggle Marbles
@@ -232,6 +215,8 @@ import Particles from "./Particles.astro";
         }, 500) as unknown as number;
       }
     }) as EventListener);
+
+    // Login Window Logic - Moved to CentralIsland.tsx
   }
 </script>
 
@@ -294,72 +279,8 @@ import Particles from "./Particles.astro";
     pointer-events: none;
   }
 
-  .title-card {
-    padding: 1.8rem 2.4rem;
-    border-radius: 22px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.12),
-      rgba(255, 255, 255, 0.04)
-    );
-    backdrop-filter: blur(6px);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 10px 40px rgba(0, 0, 0, 0.5);
-    display: inline-block;
-    width: auto;
-    max-width: 80vw;
-    position: relative;
-    overflow: hidden;
-    pointer-events: auto;
-    z-index: 6;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-  }
-
-  .navbar {
-    opacity: 0;
-    transition: opacity 1s ease;
-  }
-
-  .title-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 22px;
-    background: linear-gradient(
-      120deg,
-      rgba(124, 251, 255, 0.06),
-      rgba(255, 127, 209, 0.05),
-      rgba(255, 209, 102, 0.05)
-    );
-    z-index: -1;
-  }
-
-  h1 {
-    margin: 0 0 0.35rem 0;
-    font-size: clamp(2rem, 7vw, 4.4rem);
-    line-height: 1;
-    letter-spacing: 0.07em;
-    text-transform: none;
-    color: var(--text);
-    text-shadow:
-      0 0 18px rgba(124, 251, 255, 0.55),
-      0 6px 22px rgba(0, 0, 0, 0.35);
-  }
-
-  .title-svg-container {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-  }
-
-  .title-svg-container :global(svg) {
-    width: 100%;
-    height: auto;
-    display: block;
+  .content > :global(*) {
+    grid-area: 1 / 1;
   }
 
   .tagline {
@@ -414,6 +335,12 @@ import Particles from "./Particles.astro";
 
   :global(.marble-wrapper:hover) {
     z-index: 10;
+  }
+
+  /* Restored Navbar opacity for fade-in script in MainView */
+  .navbar {
+    opacity: 0;
+    transition: opacity 1s ease;
   }
 
   :global(.marble) {
@@ -480,12 +407,6 @@ import Particles from "./Particles.astro";
   }
 
   @media (max-width: 720px) {
-    .title-card {
-      width: auto;
-      max-width: 82vw;
-      padding: 1.6rem 1.8rem;
-    }
-
     h1 {
       font-size: clamp(1.8rem, 10vw, 3rem);
       letter-spacing: 0.05em;

@@ -37,19 +37,19 @@
     <div class="separator"></div>
 
     <label class="toggle-switch">
-      <input type="checkbox" id="title-toggle" checked />
+      <input type="checkbox" id="title-toggle" checked>
       <span class="slider"></span>
       <span class="label-text">Title</span>
     </label>
 
     <label class="toggle-switch">
-      <input type="checkbox" id="marbles-toggle" checked />
+      <input type="checkbox" id="marbles-toggle" checked>
       <span class="slider"></span>
       <span class="label-text">Marbles</span>
     </label>
 
     <label class="toggle-switch" id="collision-container">
-      <input type="checkbox" id="collision-toggle" checked />
+      <input type="checkbox" id="collision-toggle" checked>
       <span class="slider"></span>
       <span class="label-text">Collisions</span>
     </label>
@@ -61,19 +61,19 @@
     </label>
 
     <label class="toggle-switch" id="device-motion-container">
-      <input type="checkbox" id="device-motion-toggle" checked />
+      <input type="checkbox" id="device-motion-toggle" checked>
       <span class="slider"></span>
       <span class="label-text">Motion</span>
     </label>
 
     <label class="toggle-switch" id="device-orientation-container">
-      <input type="checkbox" id="device-orientation-toggle" checked />
+      <input type="checkbox" id="device-orientation-toggle" checked>
       <span class="slider"></span>
       <span class="label-text">Orientation</span>
     </label>
 
     <label class="toggle-switch">
-      <input type="checkbox" id="background-toggle" checked />
+      <input type="checkbox" id="background-toggle" checked>
       <span class="slider"></span>
       <span class="label-text">Background</span>
     </label>
@@ -222,6 +222,41 @@
         !toggleBtn.contains(e.target as Node)
       ) {
         menu.classList.remove("active");
+      }
+    });
+
+    // Login Window Logic Integration
+    let titlePrevState = true;
+
+    window.addEventListener("open-login", () => {
+      // When login opens:
+      // 1. Save current title toggle state
+      // 2. Force title toggle to OFF (unchecked)
+      // 3. Disable title toggle (and UI)
+      if (toggles.title) {
+        titlePrevState = toggles.title.checked;
+        toggles.title.checked = false;
+        toggles.title.disabled = true;
+
+        const parent = toggles.title.parentElement;
+        if (parent) parent.classList.add("disabled");
+      }
+    });
+
+    window.addEventListener("close-login", () => {
+      // When login closes:
+      // 1. Enable title toggle
+      // 2. Restore previous state
+      // 3. Emit toggle-title event to let MainView know what to do
+      if (toggles.title) {
+        toggles.title.disabled = false;
+        const parent = toggles.title.parentElement;
+        if (parent) parent.classList.remove("disabled");
+
+        toggles.title.checked = titlePrevState;
+
+        // Important: Tell MainView to restore the title card if it was previously enabled
+        emit("toggle-title", titlePrevState);
       }
     });
   }

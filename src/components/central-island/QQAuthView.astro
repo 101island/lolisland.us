@@ -17,10 +17,20 @@
   </button>
   <h2>QQ Login</h2>
   <p class="instruction">Enter your QQ id to start</p>
-  <input type="text" id="qq-id-input" placeholder="QQ" class="input-field">
+  <div class="input-group">
+    <input
+      type="text"
+      id="qq-id-input"
+      placeholder="QQ"
+      class="input-field"
+      minlength="5"
+      maxlength="11"
+    />
+    <div id="qq-id-error" class="input-error hidden"></div>
+  </div>
+
   <button id="btn-qq-next" class="submit-btn">Next</button>
   <button class="back-text-btn" data-target="view-login">Back to Login</button>
-  <p class="error-msg hidden" id="qq-error"></p>
 </div>
 
 <style>
@@ -84,6 +94,11 @@
     font-size: 0.9rem;
   }
 
+  .input-group {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
   .input-field {
     width: 100%;
     padding: 0.8rem 1rem;
@@ -96,7 +111,7 @@
     transition:
       border-color 0.2s,
       background 0.2s;
-    margin-bottom: 1rem;
+    /* margin-bottom removed */
     font-family:
       monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New";
@@ -108,6 +123,20 @@
   }
   .input-field::placeholder {
     color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* Specific styles for input errors */
+  .input-error {
+    color: #ff3333; /* Stronger red */
+    font-size: 0.85rem;
+    margin-top: 6px; /* Space between input and error */
+    text-align: center;
+    font-weight: 500;
+    animation: fadeIn 0.3s ease;
+  }
+  /* Remove invalid style if present */
+  .error-msg {
+    display: none;
   }
 
   .submit-btn {
@@ -152,12 +181,6 @@
   }
   .back-text-btn:hover {
     color: white;
-  }
-
-  .error-msg {
-    color: #ff6b6b;
-    margin-top: 10px;
-    font-size: 0.9rem;
   }
   .fade-in {
     animation: fadeIn 0.5s ease forwards;

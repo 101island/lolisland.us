@@ -49,9 +49,13 @@ const { titleSvg } = Astro.props;
 
   // Displays
   const displays = {
-    loginError: document.getElementById("login-error"),
-    qqError: document.getElementById("qq-error"),
-    regError: document.getElementById("reg-error"),
+    loginError: document.getElementById("login-password-error"),
+    loginUserError: document.getElementById("login-username-error"),
+    loginPassError: document.getElementById("login-password-error"),
+    qqError: document.getElementById("qq-id-error"),
+    regError: document.getElementById("reg-password-error"),
+    regUserError: document.getElementById("reg-username-error"),
+    regPassError: document.getElementById("reg-password-error"),
     verifyCode: document.getElementById("verification-code-display"),
     dashAvatar: document.getElementById(
       "dashboard-avatar-img",
@@ -81,9 +85,13 @@ const { titleSvg } = Astro.props;
   }
 
   function clearErrors() {
-    if (displays.loginError) displays.loginError.classList.add("hidden");
-    if (displays.qqError) displays.qqError.classList.add("hidden");
-    if (displays.regError) displays.regError.classList.add("hidden");
+    [
+      displays.loginUserError,
+      displays.loginPassError,
+      displays.qqError,
+      displays.regUserError,
+      displays.regPassError,
+    ].forEach((el) => el?.classList.add("hidden"));
   }
 
   function updateDashboard() {
@@ -109,14 +117,38 @@ const { titleSvg } = Astro.props;
     switchView("dashboard");
   }
 
+  function setLoading(btnId: string, isLoading: boolean, originalText: string) {
+    const btn = document.getElementById(btnId) as HTMLButtonElement | null;
+    if (!btn) return;
+
+    if (isLoading) {
+      btn.dataset.originalText = originalText;
+      btn.innerHTML = '<span class="btn-spinner"></span>';
+      btn.disabled = true;
+    } else {
+      btn.innerHTML = btn.dataset.originalText || originalText;
+      btn.disabled = false;
+    }
+  }
+
   // --- Auth Logic ---
   async function performLogin() {
     const u = inputs.loginUser?.value;
     const p = inputs.loginPass?.value;
-    if (!u || !p)
-      return showError(displays.loginError, "Please fill all fields");
 
     clearErrors();
+    let hasError = false;
+    if (!u) {
+      showError(displays.loginUserError, "Username required");
+      hasError = true;
+    }
+    if (!p) {
+      showError(displays.loginPassError, "Password required");
+      hasError = true;
+    }
+    if (hasError) return;
+
+    setLoading("btn-login-submit", true, "Login");
     try {
       const res = await fetch(`${BACKEND_API_BASE}/login`, {
         method: "POST",
@@ -129,18 +161,23 @@ const { titleSvg } = Astro.props;
         if (inputs.loginUser) inputs.loginUser.value = "";
         if (inputs.loginPass) inputs.loginPass.value = "";
       } else {
-        showError(displays.loginError, data.error || "Login failed");
+        showError(displays.loginPassError, data.error || "Login failed");
       }
     } catch (e) {
-      showError(displays.loginError, "Network error");
+      showError(displays.loginPassError, "Network error");
+    } finally {
+      setLoading("btn-login-submit", false, "Login");
     }
   }
 
   async function startQQAuth() {
     const qq = inputs.qqId?.value;
-    if (!qq) return showError(displays.qqError, "Enter your QQ");
-
     clearErrors();
+    if (!qq) return showError(displays.qqError, "Enter your QQ");
+    if (!/^\d{5,11}$/.test(qq))
+      return showError(displays.qqError, "QQ number must be 5-11 digits");
+
+    setLoading("btn-qq-next", true, "Next");
     try {
       const res = await fetch(`${BACKEND_API_BASE}/auth/qq/start`, {
         method: "POST",
@@ -149,7 +186,8 @@ const { titleSvg } = Astro.props;
       });
       const data = await res.json();
       if (data.code) {
-        if (displays.verifyCode) displays.verifyCode.textContent = data.code;
+        if (displays.verifyCode)
+          displays.verifyCode.textContent = `/login ${data.code}`;
         currentQQ = qq;
         switchView("verification");
         startPolling(qq);
@@ -158,6 +196,8 @@ const { titleSvg } = Astro.props;
       }
     } catch (e) {
       showError(displays.qqError, "Network error");
+    } finally {
+      setLoading("btn-qq-next", false, "Next");
     }
   }
 
@@ -188,9 +228,20 @@ const { titleSvg } = Astro.props;
   async function performRegister() {
     const u = inputs.regUser?.value;
     const p = inputs.regPass?.value;
-    if (!u || !p) return showError(displays.regError, "Please fill all fields");
 
     clearErrors();
+    let hasError = false;
+    if (!u) {
+      showError(displays.regUserError, "Username required");
+      hasError = true;
+    }
+    if (!p) {
+      showError(displays.regPassError, "Password required");
+      hasError = true;
+    }
+    if (hasError) return;
+
+    setLoading("btn-register-submit", true, "Register");
     try {
       const res = await fetch(`${BACKEND_API_BASE}/register`, {
         method: "POST",
@@ -211,10 +262,12 @@ const { titleSvg } = Astro.props;
           switchView("login");
         }
       } else {
-        showError(displays.regError, data.error || "Registration failed");
+        showError(displays.regPassError, data.error || "Registration failed");
       }
     } catch (e) {
-      showError(displays.regError, "Network error");
+      showError(displays.regPassError, "Network error");
+    } finally {
+      setLoading("btn-register-submit", false, "Register");
     }
   }
 
@@ -266,9 +319,20 @@ const { titleSvg } = Astro.props;
   document
     .getElementById("btn-qq-mode")
     ?.addEventListener("click", () => switchView("qqInput"));
-  document
-    .getElementById("btn-qq-next")
-    ?.addEventListener("click", startQQAuth);
+  const btnQQNext = document.getElementById("btn-qq-next") as HTMLButtonElement;
+  if (btnQQNext) {
+    // Initial state
+    btnQQNext.disabled = true;
+    btnQQNext.addEventListener("click", startQQAuth);
+  }
+
+  if (inputs.qqId) {
+    inputs.qqId.addEventListener("input", () => {
+      const val = inputs.qqId.value;
+      const isValid = /^\d{5,11}$/.test(val);
+      if (btnQQNext) btnQQNext.disabled = !isValid;
+    });
+  }
   document
     .getElementById("btn-cancel-verify")
     ?.addEventListener("click", () => {
@@ -316,6 +380,25 @@ const { titleSvg } = Astro.props;
 
   checkLoginState();
 </script>
+
+<style is:global>
+  .btn-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>
 
 <style>
   .island-container {

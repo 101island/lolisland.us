@@ -17,20 +17,27 @@
   </button>
   <h2>Complete Registration</h2>
   <p class="instruction">Set up your username and password</p>
-  <input
-    type="text"
-    id="reg-username"
-    placeholder="Username"
-    class="input-field"
-  >
-  <input
-    type="password"
-    id="reg-password"
-    placeholder="Password"
-    class="input-field"
-  >
+  <div class="input-group">
+    <input
+      type="text"
+      id="reg-username"
+      placeholder="Username"
+      class="input-field"
+    />
+    <div id="reg-username-error" class="input-error hidden"></div>
+  </div>
+
+  <div class="input-group">
+    <input
+      type="password"
+      id="reg-password"
+      placeholder="Password"
+      class="input-field"
+    />
+    <div id="reg-password-error" class="input-error hidden"></div>
+  </div>
+
   <button id="btn-register-submit" class="submit-btn">Register</button>
-  <p class="error-msg hidden" id="reg-error"></p>
 </div>
 
 <style>
@@ -94,6 +101,11 @@
     font-size: 0.9rem;
   }
 
+  .input-group {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
   .input-field {
     width: 100%;
     padding: 0.8rem 1rem;
@@ -106,7 +118,7 @@
     transition:
       border-color 0.2s,
       background 0.2s;
-    margin-bottom: 1rem;
+    /* margin-bottom removed */
     font-family:
       monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New";
@@ -118,6 +130,20 @@
   }
   .input-field::placeholder {
     color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* Specific styles for input errors */
+  .input-error {
+    color: #ff3333; /* Stronger red */
+    font-size: 0.85rem;
+    margin-top: 6px; /* Space between input and error */
+    text-align: center;
+    font-weight: 500;
+    animation: fadeIn 0.3s ease;
+  }
+  /* Remove invalid style if present */
+  .error-msg {
+    display: none;
   }
 
   .submit-btn {
@@ -149,12 +175,6 @@
   .submit-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
-  }
-
-  .error-msg {
-    color: #ff6b6b;
-    margin-top: 10px;
-    font-size: 0.9rem;
   }
 
   .fade-in {

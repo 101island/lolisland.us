@@ -94,8 +94,33 @@
     border-radius: 12px;
     border: 1px dashed rgba(255, 255, 255, 0.3);
     margin: 1rem 0;
-    user-select: all;
+    user-select: none;
     color: #7cfbff;
+    cursor: pointer;
+  }
+
+  .shake {
+    animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  @keyframes shake {
+    10%,
+    90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+    20%,
+    80% {
+      transform: translate3d(2px, 0, 0);
+    }
+    30%,
+    50%,
+    70% {
+      transform: translate3d(-4px, 0, 0);
+    }
+    40%,
+    60% {
+      transform: translate3d(4px, 0, 0);
+    }
   }
 
   .status-text {
@@ -143,3 +168,38 @@
     }
   }
 </style>
+
+<script>
+  const codeDisplay = document.querySelector(
+    "#verification-code-display",
+  ) as HTMLElement;
+  const statusText = document.querySelector(".status-text") as HTMLElement;
+
+  if (codeDisplay && statusText) {
+    codeDisplay.addEventListener("click", async () => {
+      const code = codeDisplay.innerText;
+      if (!code || code === "......") return;
+
+      try {
+        await navigator.clipboard.writeText(code);
+
+        // Visual feedback
+        const originalStatus = statusText.innerText;
+        statusText.innerText = "Copied to clipboard!";
+        statusText.style.color = "#7cfbff";
+
+        codeDisplay.classList.remove("shake");
+        // Trigger reflow
+        void codeDisplay.offsetWidth;
+        codeDisplay.classList.add("shake");
+
+        setTimeout(() => {
+          statusText.innerText = originalStatus;
+          statusText.style.color = "";
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    });
+  }
+</script>

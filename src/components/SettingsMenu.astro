@@ -54,6 +54,12 @@
       <span class="label-text">Collisions</span>
     </label>
 
+    <label class="toggle-switch">
+      <input type="checkbox" id="mouse-interaction-toggle" checked />
+      <span class="slider"></span>
+      <span class="label-text">MouseInteraction</span>
+    </label>
+
     <label class="toggle-switch" id="device-motion-container">
       <input type="checkbox" id="device-motion-toggle" checked />
       <span class="slider"></span>
@@ -106,6 +112,9 @@
     background: document.getElementById(
       "background-toggle",
     ) as HTMLInputElement,
+    mouseInteraction: document.getElementById(
+      "mouse-interaction-toggle",
+    ) as HTMLInputElement,
     deviceMotion: document.getElementById(
       "device-motion-toggle",
     ) as HTMLInputElement,
@@ -123,6 +132,11 @@
   if (toggles.collision) {
     toggles.collision.addEventListener("change", (e) =>
       emit("toggle-collision", (e.target as HTMLInputElement).checked),
+    );
+  }
+  if (toggles.mouseInteraction) {
+    toggles.mouseInteraction.addEventListener("change", (e) =>
+      emit("toggle-mouse-interaction", (e.target as HTMLInputElement).checked),
     );
   }
   if (toggles.deviceMotion) {

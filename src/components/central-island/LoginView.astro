@@ -26,7 +26,7 @@ import qqIconRaw from "../../assets/icons/qq.svg?raw";
       id="login-username"
       placeholder="Username"
       class="input-field"
-    />
+    >
     <div id="login-username-error" class="input-error hidden"></div>
   </div>
 
@@ -36,7 +36,7 @@ import qqIconRaw from "../../assets/icons/qq.svg?raw";
       id="login-password"
       placeholder="Password"
       class="input-field"
-    />
+    >
     <div id="login-password-error" class="input-error hidden"></div>
   </div>
 
@@ -47,7 +47,7 @@ import qqIconRaw from "../../assets/icons/qq.svg?raw";
   </div>
 
   <button id="btn-qq-mode" class="qq-btn" title="Login with QQ">
-    <span set:html={qqIconRaw} style="display: flex; align-items: center;" />
+    <span set:html={qqIconRaw} style="display: flex; align-items: center;"/>
   </button>
 </div>
 
@@ -128,6 +128,8 @@ import qqIconRaw from "../../assets/icons/qq.svg?raw";
       monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New";
     text-align: center; /* Center input text */
+    user-select: text;
+    -webkit-user-select: text;
   }
   .input-field:focus {
     border-color: rgba(124, 251, 255, 0.5);

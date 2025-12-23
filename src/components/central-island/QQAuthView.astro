@@ -25,7 +25,7 @@
       class="input-field"
       minlength="5"
       maxlength="11"
-    />
+    >
     <div id="qq-id-error" class="input-error hidden"></div>
   </div>
 
@@ -116,6 +116,8 @@
       monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New";
     text-align: center; /* Center input text */
+    user-select: text;
+    -webkit-user-select: text;
   }
   .input-field:focus {
     border-color: rgba(124, 251, 255, 0.5);

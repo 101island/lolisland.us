@@ -23,7 +23,7 @@
       id="reg-username"
       placeholder="Username"
       class="input-field"
-    />
+    >
     <div id="reg-username-error" class="input-error hidden"></div>
   </div>
 
@@ -33,7 +33,7 @@
       id="reg-password"
       placeholder="Password"
       class="input-field"
-    />
+    >
     <div id="reg-password-error" class="input-error hidden"></div>
   </div>
 
@@ -123,6 +123,8 @@
       monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", "Courier New";
     text-align: center; /* Center input text */
+    user-select: text;
+    -webkit-user-select: text;
   }
   .input-field:focus {
     border-color: rgba(124, 251, 255, 0.5);

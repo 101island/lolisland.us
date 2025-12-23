@@ -11,16 +11,17 @@ const { titleSvg } = Astro.props;
 ---
 
 <div class="island-container">
-  <TitleCard titleSvg={titleSvg} />
-  <LoginView />
-  <QQAuthView />
-  <VerificationView />
-  <RegisterView />
-  <DashboardView />
+  <TitleCard titleSvg={titleSvg}/>
+  <LoginView/>
+  <QQAuthView/>
+  <VerificationView/>
+  <RegisterView/>
+  <DashboardView/>
 </div>
 
 <script>
   import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
+
   let isLoggedIn = false;
   let currentQQ = "";
   let isPolling = false;
@@ -90,7 +91,9 @@ const { titleSvg } = Astro.props;
       displays.qqError,
       displays.regUserError,
       displays.regPassError,
-    ].forEach((el) => el?.classList.add("hidden"));
+    ].forEach((el) => {
+      el?.classList.add("hidden");
+    });
   }
 
   function updateDashboard() {

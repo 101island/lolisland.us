@@ -25,9 +25,13 @@ const { titleSvg } = Astro.props;
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.08),
       0 10px 40px rgba(0, 0, 0, 0.5);
+    display: inline-block;
+    width: auto;
+    max-width: 80vw;
     position: relative;
     overflow: hidden;
     pointer-events: auto;
+    z-index: 6;
   }
   .title-card::after {
     content: "";
@@ -53,6 +57,24 @@ const { titleSvg } = Astro.props;
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+  .title-svg-container {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+  .title-svg-container :global(svg) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  @media (max-width: 720px) {
+    .title-card {
+      max-width: 90vw;
+      padding: 1.2rem 1.4rem;
     }
   }
 </style>

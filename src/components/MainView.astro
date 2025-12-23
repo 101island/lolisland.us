@@ -278,74 +278,6 @@ import Particles from "./Particles.astro";
     grid-area: 1 / 1;
   }
 
-  .title-card {
-    padding: 1.8rem 2.4rem;
-    border-radius: 22px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.12),
-      rgba(255, 255, 255, 0.04)
-    );
-    backdrop-filter: blur(6px);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 10px 40px rgba(0, 0, 0, 0.5);
-    display: inline-block;
-    width: auto;
-    max-width: 80vw;
-    position: relative;
-    overflow: hidden;
-    pointer-events: auto;
-    z-index: 6;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-  }
-
-  .navbar {
-    opacity: 0;
-    transition: opacity 1s ease;
-  }
-
-  .title-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 22px;
-    background: linear-gradient(
-      120deg,
-      rgba(124, 251, 255, 0.06),
-      rgba(255, 127, 209, 0.05),
-      rgba(255, 209, 102, 0.05)
-    );
-    z-index: -1;
-  }
-
-  h1 {
-    margin: 0 0 0.35rem 0;
-    font-size: clamp(2rem, 7vw, 4.4rem);
-    line-height: 1;
-    letter-spacing: 0.07em;
-    text-transform: none;
-    color: var(--text);
-    text-shadow:
-      0 0 18px rgba(124, 251, 255, 0.55),
-      0 6px 22px rgba(0, 0, 0, 0.35);
-  }
-
-  .title-svg-container {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-  }
-
-  .title-svg-container :global(svg) {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
   .tagline {
     margin: 0.4rem 0 0;
     font-size: clamp(1rem, 2.4vw, 1.35rem);
@@ -398,6 +330,12 @@ import Particles from "./Particles.astro";
 
   :global(.marble-wrapper:hover) {
     z-index: 10;
+  }
+
+  /* Restored Navbar opacity for fade-in script in MainView */
+  .navbar {
+    opacity: 0;
+    transition: opacity 1s ease;
   }
 
   :global(.marble) {
@@ -464,12 +402,6 @@ import Particles from "./Particles.astro";
   }
 
   @media (max-width: 720px) {
-    .title-card {
-      width: auto;
-      max-width: 82vw;
-      padding: 1.6rem 1.8rem;
-    }
-
     h1 {
       font-size: clamp(1.8rem, 10vw, 3rem);
       letter-spacing: 0.05em;

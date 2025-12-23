@@ -94,7 +94,8 @@
     border-radius: 12px;
     border: 1px dashed rgba(255, 255, 255, 0.3);
     margin: 1rem 0;
-    user-select: none;
+    user-select: text; /* Allow selection if needed for copy, though script handles click-to-copy */
+    -webkit-user-select: text;
     color: #7cfbff;
     cursor: pointer;
   }

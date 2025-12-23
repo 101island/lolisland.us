@@ -23,8 +23,7 @@ const { titleSvg } = Astro.props;
   import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
   let isLoggedIn = false;
   let currentQQ = "";
-  let pollIntervalId: string | number | NodeJS.Timeout | null | undefined =
-    null;
+  let isPolling = false;
 
   // DOM Elements
   const views = {
@@ -202,27 +201,38 @@ const { titleSvg } = Astro.props;
   }
 
   function startPolling(qqToPoll: string) {
-    if (pollIntervalId) clearInterval(pollIntervalId);
-    pollIntervalId = setInterval(async () => {
+    isPolling = true;
+
+    const poll = async () => {
+      if (!isPolling) return;
+
       try {
         const res = await fetch(
           `${BACKEND_API_BASE}/auth/qq/status?qq=${qqToPoll}`,
         );
+
+        if (!isPolling) return; // Check again after await
+
         const data = await res.json();
 
         if (data.status === "verified") {
-          clearInterval(pollIntervalId as NodeJS.Timeout);
-          pollIntervalId = null;
+          isPolling = false;
           switchView("register");
         } else if (data.status === "authenticated") {
-          clearInterval(pollIntervalId as NodeJS.Timeout);
-          pollIntervalId = null;
+          isPolling = false;
           handleLoginSuccess(data.token, data.qq);
+        } else {
+          // Status pending or other, retry immediately
+          if (isPolling) poll();
         }
       } catch (e) {
         console.error("Polling error", e);
+        // Retry immediately on error
+        if (isPolling) poll();
       }
-    }, 2000);
+    };
+
+    poll();
   }
 
   async function performRegister() {
@@ -308,7 +318,7 @@ const { titleSvg } = Astro.props;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       switchView("title");
-      if (pollIntervalId) clearInterval(pollIntervalId as NodeJS.Timeout);
+      isPolling = false;
       clearErrors();
     });
   });
@@ -336,7 +346,7 @@ const { titleSvg } = Astro.props;
   document
     .getElementById("btn-cancel-verify")
     ?.addEventListener("click", () => {
-      if (pollIntervalId) clearInterval(pollIntervalId as NodeJS.Timeout);
+      isPolling = false;
       switchView("qqInput");
     });
   document

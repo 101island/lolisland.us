@@ -176,7 +176,8 @@ export class MarbleSystem {
 
     for (let i = 0; i < subSteps; i++) {
       // Apply mouse force field
-      if (this.mouseInteractionEnabled) {     //mouse-interaction-trigger controll
+      if (this.mouseInteractionEnabled) {
+        //mouse-interaction-trigger controll
         for (const marble of this.marbles) {
           if (this.mouseInteraction.shouldApplyForce(marble)) {
             this.mouseInteraction.applyForce(marble, subDt);
@@ -315,9 +316,7 @@ export class MarbleSystem {
     }
   }
 
-  /**
-   * Request device motion permission
-   */
+  // Request device motion permission
   public async requestDeviceOrientationPermission(): Promise<boolean> {
     return this.deviceOrientationInteraction.requestPermission();
   }
@@ -326,9 +325,7 @@ export class MarbleSystem {
     return this.deviceMotionInteraction.requestPermission();
   }
 
-  /**
-   * Get device motion debug info see also MainView.astro
-   */
+  // Get device motion debug info see also MainView.astro
   public getAllDebugInfo() {
     return {
       ...this.deviceOrientationInteraction.getDebugInfo(),

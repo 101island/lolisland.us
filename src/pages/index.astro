@@ -1,0 +1,36 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+export const prerender = false;
+
+const acceptLang = Astro.request.headers.get("accept-language") || "";
+let targetUrl = "/en/";
+
+// Parse and sort languages by quality (q)
+// Example: "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"
+const languages = acceptLang
+  .split(",")
+  .map((part) => {
+    const [code, qPart] = part.split(";");
+    const q = qPart ? parseFloat(qPart.split("=")[1]) : 1.0;
+    return { code: code.trim().toLowerCase(), q };
+  })
+  .sort((a, b) => b.q - a.q);
+
+for (const lang of languages) {
+  if (lang.code.startsWith("zh")) {
+    targetUrl = "/zh-cn/";
+    break;
+  }
+  if (lang.code.startsWith("en")) {
+    targetUrl = "/en/";
+    break;
+  }
+}
+---
+
+<Layout title="Loading...">
+  <script is:inline define:vars={{ targetUrl }}>
+    window.location.replace(targetUrl);
+  </script>
+</Layout>

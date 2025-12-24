@@ -1,17 +1,16 @@
 ---
 import { languages } from "../i18n/ui";
 import { getLangFromUrl, getTranslatedPath } from "../i18n/utils";
-import "flag-icons/css/flag-icons.min.css";
 
 const lang = getLangFromUrl(Astro.url);
 const translatePath = getTranslatedPath(lang);
 
 // https://flagicons.lipis.dev/
 const flags: Record<string, string> = {
-  en: "fi fi-us",
-  "zh-cn": "fi fi-cn",
-  "zh-hk": "fi fi-hk",
-  ja: "fi fi-jp",
+  en: "i-flag:us-4x3",
+  "zh-cn": "i-flag:cn-4x3",
+  "zh-hk": "i-flag:hk-4x3",
+  ja: "i-flag:jp-4x3",
 };
 
 const currentFlagClass = flags[lang];

@@ -1,24 +1,32 @@
 ---
 import { languages } from "../i18n/ui";
 import { getLangFromUrl, getTranslatedPath } from "../i18n/utils";
+import "flag-icons/css/flag-icons.min.css";
 
 const lang = getLangFromUrl(Astro.url);
 const translatePath = getTranslatedPath(lang);
 
+// https://flagicons.lipis.dev/
 const flags: Record<string, string> = {
-  en: "🇺🇸",
-  "zh-cn": "🇨🇳",
-  "zh-hk": "🇭🇰",
-  ja: "🇯🇵",
+  en: "fi fi-us",
+  "zh-cn": "fi fi-cn",
+  "zh-hk": "fi fi-hk",
+  ja: "fi fi-jp",
 };
 
-const currentFlag = flags[lang] || "🏳️";
+const currentFlagClass = flags[lang];
 const currentLabel = languages[lang as keyof typeof languages] || lang;
 ---
 
 <div class="lang-dropdown">
   <button class="lang-toggle-btn" aria-label="Select Language">
-    <span class="lang-flag">{currentFlag}</span>
+    {
+      currentFlagClass ? (
+        <span class={`lang-flag ${currentFlagClass}`} />
+      ) : (
+        <span class="lang-flag">🏳️</span>
+      )
+    }
     <span class="lang-text">{currentLabel}</span>
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -43,7 +51,11 @@ const currentLabel = languages[lang as keyof typeof languages] || lang;
           href={translatePath("/", label)}
           class={`menu-item ${lang === label ? "active" : ""}`}
         >
-          <span class="item-flag">{flags[label] || "🏳️"}</span>
+          {flags[label] ? (
+            <span class={`item-flag ${flags[label]}`} />
+          ) : (
+            <span class="item-flag">🏳️</span>
+          )}
           <span class="item-text">{name}</span>
         </a>
       ))
@@ -104,6 +116,7 @@ const currentLabel = languages[lang as keyof typeof languages] || lang;
 
   .lang-flag {
     font-size: 1.1rem;
+    border-radius: 4px;
   }
 
   .lang-text {
@@ -179,6 +192,7 @@ const currentLabel = languages[lang as keyof typeof languages] || lang;
 
   .item-flag {
     font-size: 1.2rem;
+    border-radius: 2px;
   }
 
   .item-text {

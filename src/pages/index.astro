@@ -18,8 +18,20 @@ const languages = acceptLang
   .sort((a, b) => b.q - a.q);
 
 for (const lang of languages) {
+  if (lang.code.startsWith("ja")) {
+    targetUrl = "/ja/";
+    break;
+  }
   if (lang.code.startsWith("zh")) {
-    targetUrl = "/zh-cn/";
+    if (
+      lang.code.includes("hk") ||
+      lang.code.includes("tw") ||
+      lang.code.includes("hant")
+    ) {
+      targetUrl = "/zh-hk/";
+    } else {
+      targetUrl = "/zh-cn/";
+    }
     break;
   }
   if (lang.code.startsWith("en")) {

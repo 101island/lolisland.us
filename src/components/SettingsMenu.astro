@@ -57,7 +57,7 @@
     <label class="toggle-switch">
       <input type="checkbox" id="mouse-interaction-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">MouseInteraction</span>
+      <span class="label-text">Mouse Interaction</span>
     </label>
 
     <label class="toggle-switch" id="device-motion-container">
@@ -198,14 +198,23 @@
         if (parent) parent.classList.remove("disabled");
       }, 500);
 
-      // logic to disable/enable collision toggle
-      if (toggles.collision) {
-        toggles.collision.disabled = !target.checked;
-        const container = toggles.collision.parentElement;
-        if (container) {
-          container.classList.toggle("disabled", !target.checked);
+      // logic to disable/enable all marble subsystems
+      const subToggles = [
+        toggles.collision,
+        toggles.mouseInteraction,
+        toggles.deviceMotion,
+        toggles.deviceOrientation,
+      ];
+
+      subToggles.forEach((subToggle) => {
+        if (subToggle) {
+          subToggle.disabled = !target.checked;
+          const container = subToggle.parentElement;
+          if (container) {
+            container.classList.toggle("disabled", !target.checked);
+          }
         }
-      }
+      });
     });
   }
 

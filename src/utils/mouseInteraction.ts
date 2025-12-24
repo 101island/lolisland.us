@@ -16,6 +16,7 @@ export interface MouseInteractionConfig {
   repelRadius: number; // Repulsion radius
   repelForce: number; // Repulsion force
   attractForce: number; // Attraction force
+  enable: boolean;
 }
 
 export class MouseInteraction {
@@ -24,6 +25,7 @@ export class MouseInteraction {
   private isShiftPressed: boolean = false;
   private lastMoveTime: number = 0;
   private isMoving: boolean = false;
+  private isActive: boolean = false;
   private config: MouseInteractionConfig;
 
   constructor(config: MouseInteractionConfig) {
@@ -32,6 +34,8 @@ export class MouseInteraction {
 
   // Initialize mouse interaction listeners
   public init(): void {
+    if (typeof window === "undefined") return;
+
     window.addEventListener("mousemove", (e) => {
       this.mouseX = e.clientX;
       this.mouseY = e.clientY;
@@ -61,10 +65,14 @@ export class MouseInteraction {
         this.isShiftPressed = false;
       }
     });
+
+    this.isActive = true;
   }
 
   // Determine if force field should be applied to marble
   public shouldApplyForce(marble: Marble): boolean {
+    if (!this.isActive || !this.config.enable) return false;
+
     // Check if mouse moved recently (within 300ms)
     const now = performance.now();
     if (now - this.lastMoveTime > 300) {
@@ -96,11 +104,13 @@ export class MouseInteraction {
   // Get whether force field is active
   public isForceFieldActive(): boolean {
     const now = performance.now();
-    return this.isMoving && now - this.lastMoveTime <= 300;
+    return this.config.enable && this.isMoving && now - this.lastMoveTime <= 300;
   }
 
   // Apply mouse force field effect (Note: This function should only be called when shouldApplyForce returns true)
   public applyForce(marble: Marble, dt: number): void {
+    if (!this.isActive || !this.config.enable) return;
+
     // Fix state at the start of function to avoid state change during execution
     const isAttractMode = this.isShiftPressed;
     const { attractRadius, repelRadius, repelForce, attractForce } =
@@ -144,5 +154,13 @@ export class MouseInteraction {
   // Get if Shift key is pressed
   public isAttractMode(): boolean {
     return this.isShiftPressed;
+  }
+
+  public getEnabled(): boolean {
+    return this.config.enable;
+  }
+
+  public isActivated(): boolean {
+    return this.isActive;
   }
 }

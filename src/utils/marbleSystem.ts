@@ -19,6 +19,7 @@ export interface MarbleSystemConfig {
     repelRadius?: number;
     repelForce?: number;
     attractForce?: number;
+    enable?: boolean;
   };
   deviceOrientationConfig?: {
     sensitivity?: number;
@@ -35,9 +36,6 @@ export interface MarbleSystemConfig {
 export class MarbleSystem {
   private container: HTMLElement;
   private marbles: Marble[] = [];
-
-  // Mouse interaction enabled state
-  private mouseInteractionEnabled: boolean = true;
 
   // Subsystems
   private mouseInteraction: MouseInteraction;
@@ -75,6 +73,9 @@ export class MarbleSystem {
       attractForce:
         config.mouseInteractionConfig?.attractForce ??
         MARBLE_CONFIG.mouseInteraction.attractForce,
+      enable:
+        config.mouseInteractionConfig?.enable ??
+        MARBLE_CONFIG.mouseInteraction.enable,
     };
     this.mouseInteraction = new MouseInteraction(mouseConfig);
     this.mouseInteraction.init();
@@ -176,7 +177,11 @@ export class MarbleSystem {
 
     for (let i = 0; i < subSteps; i++) {
       // Apply mouse force field
-      if (this.mouseInteractionEnabled) {     //mouse-interaction-trigger controll
+      const mouseActive =
+        this.mouseInteraction.isActivated() &&
+        this.mouseInteraction.getEnabled();
+
+      if (mouseActive) {
         for (const marble of this.marbles) {
           if (this.mouseInteraction.shouldApplyForce(marble)) {
             this.mouseInteraction.applyForce(marble, subDt);
@@ -363,7 +368,7 @@ export class MarbleSystem {
 
   // Toggle mouse interaction
   public setMouseInteraction(enabled: boolean): void {
-    this.mouseInteractionEnabled = enabled;
+    this.mouseInteraction.updateConfig({ enable: enabled });
   }
 
   // Toggle debug mode (show velocity vectors)

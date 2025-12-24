@@ -43,6 +43,7 @@ export const MARBLE_CONFIG = {
     repelRadius: 300, // Repulsion radius
     repelForce: 400, // Repulsion force
     attractForce: 600, // Attraction force
+    enable: true,
   },
   // Device motion interaction configuration
   deviceOrientation: {

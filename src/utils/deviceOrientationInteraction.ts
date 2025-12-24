@@ -83,13 +83,13 @@ export class DeviceOrientationInteraction {
 
   // Request Permission (iOS 13+ need permission for DeviceOrientation too)
   public async requestPermission(): Promise<boolean> {
+    const DeviceOrientationEvent = window.DeviceOrientationEvent;
     if (
-      typeof (DeviceOrientationEvent as any).requestPermission === "function"
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
     ) {
       try {
-        const response = await (
-          DeviceOrientationEvent as any
-        ).requestPermission();
+        const response = await DeviceOrientationEvent.requestPermission();
         if (response === "granted") {
           this.init();
           return true;

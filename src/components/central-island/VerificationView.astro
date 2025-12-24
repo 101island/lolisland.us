@@ -1,3 +1,10 @@
+---
+import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
 <div id="view-verification" class="login-window fade-in hidden">
   <button class="close-btn" data-action="close">
     <svg
@@ -15,13 +22,19 @@
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
-  <h2>Verification</h2>
-  <p class="instruction">
-    Please send the following code to the bot in the QQ group:
-  </p>
-  <div id="verification-code-display" class="verification-code">......</div>
-  <p class="status-text">Waiting for verification...</p>
-  <button class="back-text-btn" id="btn-cancel-verify">Cancel</button>
+  <h2>{t("verification.title")}</h2>
+  <p class="instruction">{t("verification.instruction")}</p>
+  <div
+    id="verification-code-display"
+    class="verification-code"
+    data-copied-msg={t("verification.copied")}
+  >
+    ......
+  </div>
+  <p class="status-text">{t("verification.waiting")}</p>
+  <button class="back-text-btn" id="btn-cancel-verify">
+    {t("verification.cancel")}
+  </button>
 </div>
 
 <style>
@@ -186,7 +199,8 @@
 
         // Visual feedback
         const originalStatus = statusText.innerText;
-        statusText.innerText = "Copied to clipboard!";
+        statusText.innerText =
+          codeDisplay.dataset.copiedMsg || "Copied to clipboard!";
         statusText.style.color = "#7cfbff";
 
         codeDisplay.classList.remove("shake");

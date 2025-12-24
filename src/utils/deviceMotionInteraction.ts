@@ -63,10 +63,15 @@ export class DeviceMotionInteraction {
   }
 
   // Request Permission（iOS 13+）
+  // Request Permission（iOS 13+）
   public async requestPermission(): Promise<boolean> {
-    if (typeof (DeviceMotionEvent as any).requestPermission === "function") {
+    const DeviceMotionEvent = window.DeviceMotionEvent;
+    if (
+      typeof DeviceMotionEvent !== "undefined" &&
+      typeof DeviceMotionEvent.requestPermission === "function"
+    ) {
       try {
-        const response = await (DeviceMotionEvent as any).requestPermission();
+        const response = await DeviceMotionEvent.requestPermission();
         if (response === "granted") {
           this.init();
           return true;

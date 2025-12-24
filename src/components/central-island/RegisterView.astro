@@ -1,3 +1,10 @@
+---
+import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
 <div id="view-register" class="login-window fade-in hidden">
   <button class="close-btn" data-action="close">
     <svg
@@ -15,13 +22,13 @@
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
-  <h2>Complete Registration</h2>
-  <p class="instruction">Set up your username and password</p>
+  <h2>{t("register.title")}</h2>
+  <p class="instruction">{t("register.instruction")}</p>
   <div class="input-group">
     <input
       type="text"
       id="reg-username"
-      placeholder="Username"
+      placeholder={t("login.username.placeholder")}
       class="input-field"
     >
     <div id="reg-username-error" class="input-error hidden"></div>
@@ -31,13 +38,15 @@
     <input
       type="password"
       id="reg-password"
-      placeholder="Password"
+      placeholder={t("login.password.placeholder")}
       class="input-field"
     >
     <div id="reg-password-error" class="input-error hidden"></div>
   </div>
 
-  <button id="btn-register-submit" class="submit-btn">Register</button>
+  <button id="btn-register-submit" class="submit-btn">
+    {t("register.submit")}
+  </button>
 </div>
 
 <style>

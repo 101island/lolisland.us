@@ -1,3 +1,10 @@
+---
+import { getLangFromUrl, getTranslations } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
 <div class="settings-container">
   <div class="menu-items" id="settings-menu">
     <div class="zoom-controls">
@@ -39,43 +46,43 @@
     <label class="toggle-switch">
       <input type="checkbox" id="title-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Title</span>
+      <span class="label-text">{t("settings.title")}</span>
     </label>
 
     <label class="toggle-switch">
       <input type="checkbox" id="marbles-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Marbles</span>
+      <span class="label-text">{t("settings.marbles")}</span>
     </label>
 
     <label class="toggle-switch" id="collision-container">
       <input type="checkbox" id="collision-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Collisions</span>
+      <span class="label-text">{t("settings.collisions")}</span>
     </label>
 
     <label class="toggle-switch">
       <input type="checkbox" id="mouse-interaction-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Mouse Interaction</span>
+      <span class="label-text">{t("settings.mouse_interaction")}</span>
     </label>
 
     <label class="toggle-switch" id="device-motion-container">
       <input type="checkbox" id="device-motion-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Motion</span>
+      <span class="label-text">{t("settings.motion")}</span>
     </label>
 
     <label class="toggle-switch" id="device-orientation-container">
       <input type="checkbox" id="device-orientation-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Orientation</span>
+      <span class="label-text">{t("settings.orientation")}</span>
     </label>
 
     <label class="toggle-switch">
       <input type="checkbox" id="background-toggle" checked>
       <span class="slider"></span>
-      <span class="label-text">Background</span>
+      <span class="label-text">{t("settings.background")}</span>
     </label>
   </div>
 
@@ -101,148 +108,161 @@
 </div>
 
 <script>
-  const toggleBtn = document.getElementById("settings-toggle");
-  const menu = document.getElementById("settings-menu");
+  // Setup runs on every page load
+  document.addEventListener("astro:page-load", () => {
+    const toggleBtn = document.getElementById("settings-toggle");
+    const menu = document.getElementById("settings-menu");
 
-  // Toggle Elements
-  const toggles = {
-    collision: document.getElementById("collision-toggle") as HTMLInputElement,
-    title: document.getElementById("title-toggle") as HTMLInputElement,
-    marbles: document.getElementById("marbles-toggle") as HTMLInputElement,
-    background: document.getElementById(
-      "background-toggle",
-    ) as HTMLInputElement,
-    mouseInteraction: document.getElementById(
-      "mouse-interaction-toggle",
-    ) as HTMLInputElement,
-    deviceMotion: document.getElementById(
-      "device-motion-toggle",
-    ) as HTMLInputElement,
-    deviceOrientation: document.getElementById(
-      "device-orientation-toggle",
-    ) as HTMLInputElement,
-  };
+    // Toggle Elements
+    const toggles = {
+      collision: document.getElementById(
+        "collision-toggle",
+      ) as HTMLInputElement,
+      title: document.getElementById("title-toggle") as HTMLInputElement,
+      marbles: document.getElementById("marbles-toggle") as HTMLInputElement,
+      background: document.getElementById(
+        "background-toggle",
+      ) as HTMLInputElement,
+      mouseInteraction: document.getElementById(
+        "mouse-interaction-toggle",
+      ) as HTMLInputElement,
+      deviceMotion: document.getElementById(
+        "device-motion-toggle",
+      ) as HTMLInputElement,
+      deviceOrientation: document.getElementById(
+        "device-orientation-toggle",
+      ) as HTMLInputElement,
+    };
 
-  // Helper to dispatch event
-  const emit = (name: string, enabled: boolean) => {
-    window.dispatchEvent(new CustomEvent(name, { detail: { enabled } }));
-  };
+    // Helper to dispatch event
+    const emit = (name: string, enabled: boolean) => {
+      window.dispatchEvent(new CustomEvent(name, { detail: { enabled } }));
+    };
 
-  // Bind events
-  if (toggles.collision) {
-    toggles.collision.addEventListener("change", (e) =>
-      emit("toggle-collision", (e.target as HTMLInputElement).checked),
-    );
-  }
-  if (toggles.mouseInteraction) {
-    toggles.mouseInteraction.addEventListener("change", (e) =>
-      emit("toggle-mouse-interaction", (e.target as HTMLInputElement).checked),
-    );
-  }
-  if (toggles.deviceMotion) {
-    toggles.deviceMotion.addEventListener("change", (e) =>
-      emit("toggle-device-motion", (e.target as HTMLInputElement).checked),
-    );
-  }
-  if (toggles.deviceOrientation) {
-    toggles.deviceOrientation.addEventListener("change", (e) =>
-      emit("toggle-device-orientation", (e.target as HTMLInputElement).checked),
-    );
-  }
-  if (toggles.title) {
-    toggles.title.addEventListener("change", (e) => {
-      const target = e.target as HTMLInputElement;
-      emit("toggle-title", target.checked);
+    // Bind events
+    if (toggles.collision) {
+      toggles.collision.addEventListener("change", (e) =>
+        emit("toggle-collision", (e.target as HTMLInputElement).checked),
+      );
+    }
+    if (toggles.mouseInteraction) {
+      toggles.mouseInteraction.addEventListener("change", (e) =>
+        emit(
+          "toggle-mouse-interaction",
+          (e.target as HTMLInputElement).checked,
+        ),
+      );
+    }
+    if (toggles.deviceMotion) {
+      toggles.deviceMotion.addEventListener("change", (e) =>
+        emit("toggle-device-motion", (e.target as HTMLInputElement).checked),
+      );
+    }
+    if (toggles.deviceOrientation) {
+      toggles.deviceOrientation.addEventListener("change", (e) =>
+        emit(
+          "toggle-device-orientation",
+          (e.target as HTMLInputElement).checked,
+        ),
+      );
+    }
+    if (toggles.title) {
+      toggles.title.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        emit("toggle-title", target.checked);
 
-      // Debounce: Disable for 1s
-      target.disabled = true;
-      const parent = target.parentElement;
-      if (parent) parent.classList.add("disabled");
+        // Debounce: Disable for 1s
+        target.disabled = true;
+        const parent = target.parentElement;
+        if (parent) parent.classList.add("disabled");
 
-      setTimeout(() => {
-        target.disabled = false;
-        if (parent) parent.classList.remove("disabled");
-      }, 500);
-    });
-  }
-  if (toggles.background) {
-    toggles.background.addEventListener("change", (e) => {
-      const target = e.target as HTMLInputElement;
-      emit("toggle-background", target.checked);
+        setTimeout(() => {
+          target.disabled = false;
+          if (parent) parent.classList.remove("disabled");
+        }, 500);
+      });
+    }
+    if (toggles.background) {
+      toggles.background.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        emit("toggle-background", target.checked);
 
-      // Debounce: Disable for 1s
-      target.disabled = true;
-      const parent = target.parentElement;
-      if (parent) parent.classList.add("disabled");
+        // Debounce: Disable for 1s
+        target.disabled = true;
+        const parent = target.parentElement;
+        if (parent) parent.classList.add("disabled");
 
-      setTimeout(() => {
-        target.disabled = false;
-        if (parent) parent.classList.remove("disabled");
-      }, 500);
-    });
-  }
+        setTimeout(() => {
+          target.disabled = false;
+          if (parent) parent.classList.remove("disabled");
+        }, 500);
+      });
+    }
 
-  // Special handling for Marbles toggle (controls collision visibility)
-  if (toggles.marbles) {
-    toggles.marbles.addEventListener("change", (e) => {
-      const target = e.target as HTMLInputElement;
-      emit("toggle-marbles", target.checked);
+    // Special handling for Marbles toggle
+    if (toggles.marbles) {
+      toggles.marbles.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        emit("toggle-marbles", target.checked);
 
-      // Debounce: Disable for 0.5s
-      target.disabled = true;
-      const parent = target.parentElement;
-      if (parent) parent.classList.add("disabled");
+        // Debounce: Disable for 0.5s
+        target.disabled = true;
+        const parent = target.parentElement;
+        if (parent) parent.classList.add("disabled");
 
-      setTimeout(() => {
-        target.disabled = false;
-        if (parent) parent.classList.remove("disabled");
-      }, 500);
+        setTimeout(() => {
+          target.disabled = false;
+          if (parent) parent.classList.remove("disabled");
+        }, 500);
 
-      // logic to disable/enable all marble subsystems
-      const subToggles = [
-        toggles.collision,
-        toggles.mouseInteraction,
-        toggles.deviceMotion,
-        toggles.deviceOrientation,
-      ];
+        const subToggles = [
+          toggles.collision,
+          toggles.mouseInteraction,
+          toggles.deviceMotion,
+          toggles.deviceOrientation,
+        ];
 
-      subToggles.forEach((subToggle) => {
-        if (subToggle) {
-          subToggle.disabled = !target.checked;
-          const container = subToggle.parentElement;
-          if (container) {
-            container.classList.toggle("disabled", !target.checked);
+        subToggles.forEach((subToggle) => {
+          if (subToggle) {
+            subToggle.disabled = !target.checked;
+            const container = subToggle.parentElement;
+            if (container) {
+              container.classList.toggle("disabled", !target.checked);
+            }
           }
+        });
+      });
+    }
+
+    if (toggleBtn && menu) {
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menu.classList.toggle("active");
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener("click", (e) => {
+        if (
+          !menu.contains(e.target as Node) &&
+          !toggleBtn.contains(e.target as Node)
+        ) {
+          menu.classList.remove("active");
         }
       });
-    });
-  }
+    }
 
-  if (toggleBtn && menu) {
-    toggleBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      menu.classList.toggle("active");
-    });
+    // Update global reference to fresh DOM elements. Global listeners (defined below) use this to access current toggles without accumulating duplicate handlers.
+    window._settingsToggles = toggles;
+  });
 
-    // Close menu when clicking outside
-    document.addEventListener("click", (e) => {
-      if (
-        !menu.contains(e.target as Node) &&
-        !toggleBtn.contains(e.target as Node)
-      ) {
-        menu.classList.remove("active");
-      }
-    });
-
-    // Login Window Logic Integration
+  // Defines global listeners ONCE
+  if (!window._settingsListenersAttached) {
+    window._settingsListenersAttached = true;
     let titlePrevState = true;
 
     window.addEventListener("open-login", () => {
-      // When login opens:
-      // 1. Save current title toggle state
-      // 2. Force title toggle to OFF (unchecked)
-      // 3. Disable title toggle (and UI)
-      if (toggles.title) {
+      const toggles = window._settingsToggles;
+      if (toggles?.title) {
         titlePrevState = toggles.title.checked;
         toggles.title.checked = false;
         toggles.title.disabled = true;
@@ -253,19 +273,20 @@
     });
 
     window.addEventListener("close-login", () => {
-      // When login closes:
-      // 1. Enable title toggle
-      // 2. Restore previous state
-      // 3. Emit toggle-title event to let MainView know what to do
-      if (toggles.title) {
+      const toggles = window._settingsToggles;
+      if (toggles?.title) {
         toggles.title.disabled = false;
         const parent = toggles.title.parentElement;
         if (parent) parent.classList.remove("disabled");
 
         toggles.title.checked = titlePrevState;
 
-        // Important: Tell MainView to restore the title card if it was previously enabled
-        emit("toggle-title", titlePrevState);
+        // Use helper? We don't have access to 'emit'. define it or use dispatch.
+        window.dispatchEvent(
+          new CustomEvent("toggle-title", {
+            detail: { enabled: titlePrevState },
+          }),
+        );
       }
     });
   }
@@ -426,5 +447,6 @@
   .label-text {
     font-weight: 500;
     letter-spacing: 0.02em;
+    white-space: nowrap;
   }
 </style>

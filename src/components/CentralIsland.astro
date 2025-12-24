@@ -21,34 +21,51 @@ const { titleSvg } = Astro.props;
 
 <script>
   import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
+  import { defaultLang, languages, ui } from "../i18n/ui";
 
+  // Helpers that don't depend on DOM immediately
+  const getT = () => {
+    const currentLang =
+      (document.documentElement.lang as keyof typeof ui) || defaultLang;
+    const translations = ui[currentLang] || ui[defaultLang];
+    return function t(key: keyof typeof translations) {
+      return (
+        translations[key] ||
+        ui[defaultLang][key as keyof (typeof ui)["en"]] ||
+        key
+      );
+    };
+  };
+
+  // State (module-level, persists across nav if module reused in bundle, but usually we want reset?
+  // No, we want to maintain login state!)
+  // If we assume a SPA feel, login state should persist.
+  // Variables at top level of module persist.
+
+  // Actually, let's keep state here.
   let isLoggedIn = false;
   let currentQQ = "";
   let isPolling = false;
 
-  // DOM Elements
-  const views = {
+  // DOM Helpers (Dynamic)
+  const getViews = () => ({
     title: document.getElementById("view-title"),
     login: document.getElementById("view-login"),
     qqInput: document.getElementById("view-qq-input"),
     verification: document.getElementById("view-verification"),
     register: document.getElementById("view-register"),
     dashboard: document.getElementById("view-dashboard"),
-  };
+  });
 
-  type ViewName = keyof typeof views;
-
-  // Inputs
-  const inputs = {
+  const getInputs = () => ({
     loginUser: document.getElementById("login-username") as HTMLInputElement,
     loginPass: document.getElementById("login-password") as HTMLInputElement,
     qqId: document.getElementById("qq-id-input") as HTMLInputElement,
     regUser: document.getElementById("reg-username") as HTMLInputElement,
     regPass: document.getElementById("reg-password") as HTMLInputElement,
-  };
+  });
 
-  // Displays
-  const displays = {
+  const getDisplays = () => ({
     loginError: document.getElementById("login-password-error"),
     loginUserError: document.getElementById("login-username-error"),
     loginPassError: document.getElementById("login-password-error"),
@@ -60,18 +77,29 @@ const { titleSvg } = Astro.props;
     dashAvatar: document.getElementById(
       "dashboard-avatar-img",
     ) as HTMLImageElement,
-  };
+  });
 
-  // --- Helpers ---
   function switchView(viewName: string) {
+    const views = getViews();
     Object.values(views).forEach((el) => {
       if (el) el.classList.add("hidden");
     });
-    // Safe check if viewName is a valid key, otherwise ignore
+    // Safe check if viewName is a valid key
     if (Object.hasOwn(views, viewName)) {
-      const el = views[viewName as ViewName];
+      const el = views[viewName as keyof typeof views];
       if (el) el.classList.remove("hidden");
     }
+
+    // Persist View State
+    // Persist View State
+    const state = window._centralIslandState || {
+      inputs: {},
+      currentView: "title",
+      isLoggedIn: false,
+    };
+    state.currentView = viewName;
+    window._centralIslandState = state;
+
     window.dispatchEvent(
       new CustomEvent("view-change", { detail: { view: viewName } }),
     );
@@ -85,6 +113,7 @@ const { titleSvg } = Astro.props;
   }
 
   function clearErrors() {
+    const displays = getDisplays();
     [
       displays.loginUserError,
       displays.loginPassError,
@@ -97,6 +126,7 @@ const { titleSvg } = Astro.props;
   }
 
   function updateDashboard() {
+    const displays = getDisplays();
     if (displays.dashAvatar) {
       if (currentQQ) {
         displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
@@ -135,22 +165,26 @@ const { titleSvg } = Astro.props;
 
   // --- Auth Logic ---
   async function performLogin() {
+    const inputs = getInputs();
+    const displays = getDisplays();
+    const t = getT();
+
     const u = inputs.loginUser?.value;
     const p = inputs.loginPass?.value;
 
     clearErrors();
     let hasError = false;
     if (!u) {
-      showError(displays.loginUserError, "Username required");
+      showError(displays.loginUserError, t("error.username_required"));
       hasError = true;
     }
     if (!p) {
-      showError(displays.loginPassError, "Password required");
+      showError(displays.loginPassError, t("error.password_required"));
       hasError = true;
     }
     if (hasError) return;
 
-    setLoading("btn-login-submit", true, "Login");
+    setLoading("btn-login-submit", true, t("login.submit"));
     try {
       const res = await fetch(`${BACKEND_API_BASE}/login`, {
         method: "POST",
@@ -163,23 +197,30 @@ const { titleSvg } = Astro.props;
         if (inputs.loginUser) inputs.loginUser.value = "";
         if (inputs.loginPass) inputs.loginPass.value = "";
       } else {
-        showError(displays.loginPassError, data.error || "Login failed");
+        showError(
+          displays.loginPassError,
+          data.error || t("error.login_failed"),
+        );
       }
     } catch (e) {
-      showError(displays.loginPassError, "Network error");
+      showError(displays.loginPassError, t("error.network"));
     } finally {
-      setLoading("btn-login-submit", false, "Login");
+      setLoading("btn-login-submit", false, t("login.submit"));
     }
   }
 
   async function startQQAuth() {
+    const inputs = getInputs();
+    const displays = getDisplays();
+    const t = getT();
+
     const qq = inputs.qqId?.value;
     clearErrors();
-    if (!qq) return showError(displays.qqError, "Enter your QQ");
+    if (!qq) return showError(displays.qqError, t("qq.error.required"));
     if (!/^\d{5,11}$/.test(qq))
-      return showError(displays.qqError, "QQ number must be 5-11 digits");
+      return showError(displays.qqError, t("qq.error.format"));
 
-    setLoading("btn-qq-next", true, "Next");
+    setLoading("btn-qq-next", true, t("qq.next"));
     try {
       const res = await fetch(`${BACKEND_API_BASE}/auth/qq/start`, {
         method: "POST",
@@ -194,12 +235,12 @@ const { titleSvg } = Astro.props;
         switchView("verification");
         startPolling(qq);
       } else {
-        showError(displays.qqError, data.error || "Failed to start auth");
+        showError(displays.qqError, data.error || t("qq.error.failed_start"));
       }
     } catch (e) {
-      showError(displays.qqError, "Network error");
+      showError(displays.qqError, t("error.network"));
     } finally {
-      setLoading("btn-qq-next", false, "Next");
+      setLoading("btn-qq-next", false, t("qq.next"));
     }
   }
 
@@ -239,22 +280,26 @@ const { titleSvg } = Astro.props;
   }
 
   async function performRegister() {
+    const inputs = getInputs();
+    const displays = getDisplays();
+    const t = getT();
+
     const u = inputs.regUser?.value;
     const p = inputs.regPass?.value;
 
     clearErrors();
     let hasError = false;
     if (!u) {
-      showError(displays.regUserError, "Username required");
+      showError(displays.regUserError, t("error.username_required"));
       hasError = true;
     }
     if (!p) {
-      showError(displays.regPassError, "Password required");
+      showError(displays.regPassError, t("error.password_required"));
       hasError = true;
     }
     if (hasError) return;
 
-    setLoading("btn-register-submit", true, "Register");
+    setLoading("btn-register-submit", true, t("register.submit"));
     try {
       const res = await fetch(`${BACKEND_API_BASE}/register`, {
         method: "POST",
@@ -278,13 +323,12 @@ const { titleSvg } = Astro.props;
         showError(displays.regPassError, data.error || "Registration failed");
       }
     } catch (e) {
-      showError(displays.regPassError, "Network error");
+      showError(displays.regPassError, t("error.network"));
     } finally {
-      setLoading("btn-register-submit", false, "Register");
+      setLoading("btn-register-submit", false, t("register.submit"));
     }
   }
 
-  // --- Initialization ---
   function checkLoginState() {
     const token = localStorage.getItem("token");
     const storedQQ = localStorage.getItem("qq");
@@ -299,99 +343,182 @@ const { titleSvg } = Astro.props;
     }
   }
 
-  // --- Event Listeners ---
-  // Note: Elements might be null if not yet rendered/loaded by Astro in some edge cases but usually fine.
-  // Actually, since sub-components are static Astro components, they are rendered in HTML immediately.
-  // So standard document.getElementById works.
+  // One-time GLOBAL listeners for window events
+  // Check flag to avoid double binding (though window events are idempotent if same ref... but we use anonymous checks inside?)
+  // Using a flag property on window is safer for module re-execution scenarios (though likely runs once).
+  // Using a flag property on window is safer for module re-execution scenarios (though likely runs once).
+  if (!window._centralIslandListenersAttached) {
+    window._centralIslandListenersAttached = true;
 
-  if (views.title) {
-    views.title.addEventListener("click", () => {
+    // We attach these once. They will call `checkLoginState` or `switchView`.
+    // These functions depend on `getViews`, `getInputs` which query DOM dynamically.
+    // So this is safe across navigations!
+
+    window.addEventListener("open-login", () => {
       if (isLoggedIn) {
         switchView("dashboard");
       } else {
         switchView("login");
       }
     });
-  }
 
-  // Use event delegation or re-attach logic for close buttons
-  // Since we replaced HTML blocks with components, the close buttons are now inside those components.
-  // They still have data-action="close"
-  document.querySelectorAll('[data-action="close"]').forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
+    window.addEventListener("login-success", () => {
+      const token = localStorage.getItem("token");
+      isLoggedIn = !!token;
+      const storedQQ = localStorage.getItem("qq");
+      if (storedQQ) currentQQ = storedQQ;
+      updateDashboard();
+      if (isLoggedIn) switchView("dashboard");
+    });
+
+    window.addEventListener("logout-success", () => {
+      isLoggedIn = false;
+      currentQQ = "";
+      localStorage.removeItem("token");
+      localStorage.removeItem("qq");
       switchView("title");
-      isPolling = false;
-      clearErrors();
-    });
-  });
-
-  document
-    .getElementById("btn-login-submit")
-    ?.addEventListener("click", performLogin);
-  document
-    .getElementById("btn-qq-mode")
-    ?.addEventListener("click", () => switchView("qqInput"));
-  const btnQQNext = document.getElementById("btn-qq-next") as HTMLButtonElement;
-  if (btnQQNext) {
-    // Initial state
-    btnQQNext.disabled = true;
-    btnQQNext.addEventListener("click", startQQAuth);
-  }
-
-  if (inputs.qqId) {
-    inputs.qqId.addEventListener("input", () => {
-      const val = inputs.qqId.value;
-      const isValid = /^\d{5,11}$/.test(val);
-      if (btnQQNext) btnQQNext.disabled = !isValid;
     });
   }
-  document
-    .getElementById("btn-cancel-verify")
-    ?.addEventListener("click", () => {
-      isPolling = false;
-      switchView("qqInput");
-    });
-  document
-    .getElementById("btn-register-submit")
-    ?.addEventListener("click", performRegister);
 
-  document.querySelectorAll(".back-text-btn").forEach((btn) => {
-    const target = btn.getAttribute("data-target");
-    if (target) {
-      btn.addEventListener("click", () => {
-        switchView(target === "view-login" ? "login" : "title");
-        clearErrors();
+  // Persistence
+  const getGlobalState = () =>
+    window._centralIslandState || {
+      inputs: {},
+      currentView: "title", // Default to title if fresh load
+      isLoggedIn: false,
+    };
+
+  const saveGlobalState = (
+    state: NonNullable<Window["_centralIslandState"]>,
+  ) => {
+    window._centralIslandState = state;
+  };
+
+  // Per-page initialization
+  document.addEventListener("astro:page-load", () => {
+    // Restore state
+    const savedState = getGlobalState();
+
+    // Restore variables
+    const inputs = getInputs();
+
+    // Restore inputs
+    if (savedState.inputs) {
+      if (inputs.loginUser && savedState.inputs.loginUser)
+        inputs.loginUser.value = savedState.inputs.loginUser;
+      if (inputs.loginPass && savedState.inputs.loginPass)
+        inputs.loginPass.value = savedState.inputs.loginPass;
+      if (inputs.qqId && savedState.inputs.qqId)
+        inputs.qqId.value = savedState.inputs.qqId;
+      if (inputs.regUser && savedState.inputs.regUser)
+        inputs.regUser.value = savedState.inputs.regUser;
+      // Use regPass for input restoration
+      if (inputs.regPass && savedState.inputs.regPass)
+        inputs.regPass.value = savedState.inputs.regPass;
+    }
+
+    // Restore View (if user was in login form, keep them there)
+    checkLoginState(); // This sets isLoggedIn flag based on token
+
+    // If NOT logged in, we might be in 'login' or 'register' or 'qqInput' view
+    if (
+      !isLoggedIn &&
+      savedState.currentView &&
+      savedState.currentView !== "dashboard"
+    ) {
+      switchView(savedState.currentView);
+    }
+
+    // Attach listeners
+    const saveInputs = () => {
+      const state = getGlobalState();
+      state.inputs = {
+        loginUser: inputs.loginUser?.value || "",
+        loginPass: inputs.loginPass?.value || "",
+        qqId: inputs.qqId?.value || "",
+        regUser: inputs.regUser?.value || "",
+        regPass: inputs.regPass?.value || "",
+      };
+      saveGlobalState(state);
+    };
+
+    Object.values(inputs).forEach((input) => {
+      input?.addEventListener("input", saveInputs);
+    });
+
+    const views = getViews();
+
+    if (views.title) {
+      views.title.addEventListener("click", () => {
+        if (isLoggedIn) {
+          switchView("dashboard");
+        } else {
+          switchView("login");
+        }
       });
     }
-  });
 
-  window.addEventListener("open-login", () => {
-    if (isLoggedIn) {
-      switchView("dashboard");
-    } else {
-      switchView("login");
+    document.querySelectorAll('[data-action="close"]').forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        switchView("title");
+        isPolling = false;
+        clearErrors();
+        // Displath close-login to let SettingsMenu/others know
+        window.dispatchEvent(new CustomEvent("close-login"));
+      });
+    });
+
+    document
+      .getElementById("btn-login-submit")
+      ?.addEventListener("click", performLogin);
+    document
+      .getElementById("btn-qq-mode")
+      ?.addEventListener("click", () => switchView("qqInput"));
+
+    const btnQQNext = document.getElementById(
+      "btn-qq-next",
+    ) as HTMLButtonElement;
+    if (btnQQNext) {
+      // Restore button state
+      if (inputs.qqId && /^\d{5,11}$/.test(inputs.qqId.value)) {
+        btnQQNext.disabled = false;
+      } else {
+        btnQQNext.disabled = true;
+      }
+
+      btnQQNext.addEventListener("click", startQQAuth);
     }
-  });
 
-  window.addEventListener("login-success", () => {
-    const token = localStorage.getItem("token");
-    isLoggedIn = !!token;
-    const storedQQ = localStorage.getItem("qq");
-    if (storedQQ) currentQQ = storedQQ;
-    updateDashboard();
-    if (isLoggedIn) switchView("dashboard");
-  });
+    if (inputs.qqId) {
+      inputs.qqId.addEventListener("input", () => {
+        const val = inputs.qqId.value;
+        const isValid = /^\d{5,11}$/.test(val);
+        if (btnQQNext) btnQQNext.disabled = !isValid;
+      });
+    }
 
-  window.addEventListener("logout-success", () => {
-    isLoggedIn = false;
-    currentQQ = "";
-    localStorage.removeItem("token");
-    localStorage.removeItem("qq");
-    switchView("title");
-  });
+    document
+      .getElementById("btn-cancel-verify")
+      ?.addEventListener("click", () => {
+        isPolling = false;
+        switchView("qqInput");
+      });
 
-  checkLoginState();
+    document
+      .getElementById("btn-register-submit")
+      ?.addEventListener("click", performRegister);
+
+    document.querySelectorAll(".back-text-btn").forEach((btn) => {
+      const target = btn.getAttribute("data-target");
+      if (target) {
+        btn.addEventListener("click", () => {
+          switchView(target === "view-login" ? "login" : "title");
+          clearErrors();
+        });
+      }
+    });
+  });
 </script>
 
 <style is:global>

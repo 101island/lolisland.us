@@ -1,9 +1,16 @@
+---
+import { getLangFromUrl, getTranslations } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
 <div class="user-dropdown hidden">
   <button class="user-avatar-btn" aria-label="User Menu">
     <img src="" alt="User Avatar" class="user-avatar-img">
   </button>
   <div class="dropdown-menu">
-    <button class="menu-item logout-btn">Logout</button>
+    <button class="menu-item logout-btn">{t("user.logout")}</button>
   </div>
 </div>
 

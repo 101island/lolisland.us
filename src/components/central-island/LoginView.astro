@@ -1,5 +1,9 @@
 ---
 import qqIconRaw from "../../assets/icons/qq.svg?raw";
+import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
 ---
 
 <div id="view-login" class="login-window fade-in hidden">
@@ -19,12 +23,12 @@ import qqIconRaw from "../../assets/icons/qq.svg?raw";
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
-  <h2>Login</h2>
+  <h2>{t("login.title")}</h2>
   <div class="input-group">
     <input
       type="text"
       id="login-username"
-      placeholder="Username"
+      placeholder={t("login.username.placeholder")}
       class="input-field"
     >
     <div id="login-username-error" class="input-error hidden"></div>
@@ -34,19 +38,25 @@ import qqIconRaw from "../../assets/icons/qq.svg?raw";
     <input
       type="password"
       id="login-password"
-      placeholder="Password"
+      placeholder={t("login.password.placeholder")}
       class="input-field"
     >
     <div id="login-password-error" class="input-error hidden"></div>
   </div>
 
-  <button id="btn-login-submit" class="submit-btn">Login</button>
+  <button
+    id="btn-login-submit"
+    class="submit-btn"
+    data-original-text={t("login.submit")}
+  >
+    {t("login.submit")}
+  </button>
 
   <div class="divider">
-    <span>OR</span>
+    <span>{t("login.or")}</span>
   </div>
 
-  <button id="btn-qq-mode" class="qq-btn" title="Login with QQ">
+  <button id="btn-qq-mode" class="qq-btn" title={t("login.qq.title")}>
     <span set:html={qqIconRaw} style="display: flex; align-items: center;"/>
   </button>
 </div>

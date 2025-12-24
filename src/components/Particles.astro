@@ -15,104 +15,109 @@
 
 <script>
   const canvas = document.getElementById("bg-particles") as HTMLCanvasElement;
-  const ctx = canvas.getContext("2d");
 
-  if (canvas && ctx) {
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+  // Use a property on the canvas or window to ensure we don't double-start
+  if (canvas && !canvas.dataset.initialized) {
+    canvas.dataset.initialized = "true";
+    const ctx = canvas.getContext("2d");
 
-    class Particle {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      size: number;
-      alpha: number;
-      targetAlpha: number;
-
-      constructor() {
-        this.x = Math.random() * width;
-        this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.8;
-        this.vy = (Math.random() - 0.5) * 0.8;
-        this.size = Math.random() * 3 + 1.5;
-        this.alpha = Math.random() * 0.5 + 0.3;
-        this.targetAlpha = this.alpha;
-      }
-
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-
-        if (this.x < 0) this.x = width;
-        if (this.x > width) this.x = 0;
-        if (this.y < 0) this.y = height;
-        if (this.y > height) this.y = 0;
-
-        if (Math.random() < 0.01) {
-          this.targetAlpha = Math.random() * 0.6 + 0.3;
-        }
-        this.alpha += (this.targetAlpha - this.alpha) * 0.05;
-      }
-
-      draw() {
-        if (!ctx) return;
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(124, 251, 255, ${this.alpha})`;
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    const particles: Particle[] = [];
-    const particleCount = Math.min(Math.floor((width * height) / 15000), 100);
-
-    for (let i = 0; i < particleCount; i++) {
-      particles.push(new Particle());
-    }
-
-    let animationId: number;
-    let isPaused = false;
-
-    const startAnimation = () => {
-      // Clear canvas
-      ctx.clearRect(0, 0, width, height);
-
-      // Update and draw particles
-      particles.forEach((p) => {
-        p.update();
-        p.draw();
-      });
-
-      // Continue loop if not paused
-      if (!isPaused) {
-        animationId = requestAnimationFrame(startAnimation);
-      }
-    };
-
-    // Start initial animation
-    startAnimation();
-
-    window.addEventListener("resize", () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
+    if (ctx) {
+      let width = window.innerWidth;
+      let height = window.innerHeight;
       canvas.width = width;
       canvas.height = height;
-    });
 
-    // Pause/Resume Logic
-    window.addEventListener("toggle-background", ((e: CustomEvent) => {
-      if (e.detail.enabled) {
-        if (isPaused) {
-          isPaused = false;
-          startAnimation();
+      class Particle {
+        x: number;
+        y: number;
+        vx: number;
+        vy: number;
+        size: number;
+        alpha: number;
+        targetAlpha: number;
+
+        constructor() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.vx = (Math.random() - 0.5) * 0.8;
+          this.vy = (Math.random() - 0.5) * 0.8;
+          this.size = Math.random() * 3 + 1.5;
+          this.alpha = Math.random() * 0.5 + 0.3;
+          this.targetAlpha = this.alpha;
         }
-      } else {
-        isPaused = true;
-        cancelAnimationFrame(animationId);
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+
+          if (this.x < 0) this.x = width;
+          if (this.x > width) this.x = 0;
+          if (this.y < 0) this.y = height;
+          if (this.y > height) this.y = 0;
+
+          if (Math.random() < 0.01) {
+            this.targetAlpha = Math.random() * 0.6 + 0.3;
+          }
+          this.alpha += (this.targetAlpha - this.alpha) * 0.05;
+        }
+
+        draw() {
+          if (!ctx) return;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(124, 251, 255, ${this.alpha})`;
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-    }) as EventListener);
+
+      const particles: Particle[] = [];
+      const particleCount = Math.min(Math.floor((width * height) / 15000), 100);
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
+
+      let animationId: number;
+      let isPaused = false;
+
+      const startAnimation = () => {
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Update and draw particles
+        particles.forEach((p) => {
+          p.update();
+          p.draw();
+        });
+
+        // Continue loop if not paused
+        if (!isPaused) {
+          animationId = requestAnimationFrame(startAnimation);
+        }
+      };
+
+      // Start initial animation
+      startAnimation();
+
+      window.addEventListener("resize", () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      });
+
+      // Pause/Resume Logic
+      window.addEventListener("toggle-background", ((e: CustomEvent) => {
+        if (e.detail.enabled) {
+          if (isPaused) {
+            isPaused = false;
+            startAnimation();
+          }
+        } else {
+          isPaused = true;
+          cancelAnimationFrame(animationId);
+        }
+      }) as EventListener);
+    }
   }
 </script>

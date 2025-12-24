@@ -1,6 +1,7 @@
 ---
 import userIconRaw from "../assets/icons/user.svg?raw";
 import titleImg from "../assets/title.svg";
+import LanguagePicker from "./LanguagePicker.astro";
 import UserDropdown from "./UserDropdown.astro";
 ---
 
@@ -13,6 +14,7 @@ import UserDropdown from "./UserDropdown.astro";
     style="height: 32px; width: auto;"
   >
   <div class="right-section">
+    <LanguagePicker/>
     <a
       href="https://github.com/101island"
       target="_blank"
@@ -137,26 +139,14 @@ import UserDropdown from "./UserDropdown.astro";
 </style>
 
 <script>
-  const navTitle = document.querySelector(".nav-title") as HTMLImageElement;
-  if (navTitle) {
-    const reveal = () => {
-      setTimeout(() => {
-        navTitle.style.opacity = "1";
-      }, 50);
-    };
-
-    if (navTitle.complete) {
-      reveal();
-    } else {
-      navTitle.addEventListener("load", reveal);
-    }
-  }
-
-  const loginBtn = document.querySelector(
-    ".user-login-btn",
-  ) as HTMLButtonElement;
+  // Helper to get fresh elements
+  const getLoginBtn = () =>
+    document.querySelector(".user-login-btn") as HTMLButtonElement;
+  const getNavTitle = () =>
+    document.querySelector(".nav-title") as HTMLImageElement;
 
   function checkLoginState() {
+    const loginBtn = getLoginBtn();
     const token = localStorage.getItem("token");
     if (token && loginBtn) {
       loginBtn.classList.add("hidden");
@@ -165,29 +155,49 @@ import UserDropdown from "./UserDropdown.astro";
     }
   }
 
-  // Initial check
-  checkLoginState();
-
-  // Listeners
+  // Listeners that persist (attached to window)
   window.addEventListener("login-success", checkLoginState);
   window.addEventListener("logout-success", checkLoginState);
 
-  if (loginBtn) {
-    loginBtn.addEventListener("click", () => {
-      window.dispatchEvent(new CustomEvent("open-login"));
-    });
+  // Handle view changes from CentralIsland
+  window.addEventListener("view-change", ((e: CustomEvent) => {
+    const loginBtn = getLoginBtn();
+    if (!loginBtn) return;
 
-    // Handle view changes from CentralIsland
-    window.addEventListener("view-change", ((e: CustomEvent) => {
-      const view = e.detail.view;
+    const view = e.detail.view;
+    if (view !== "title") {
+      loginBtn.classList.add("disabled");
+      loginBtn.setAttribute("disabled", "true");
+    } else {
+      loginBtn.classList.remove("disabled");
+      loginBtn.removeAttribute("disabled");
+    }
+  }) as EventListener);
 
-      if (view !== "title") {
-        loginBtn.classList.add("disabled");
-        loginBtn.setAttribute("disabled", "true");
+  // Per-page initialization
+  document.addEventListener("astro:page-load", () => {
+    checkLoginState();
+
+    const navTitle = getNavTitle();
+    if (navTitle) {
+      const reveal = () => {
+        setTimeout(() => {
+          navTitle.style.opacity = "1";
+        }, 50);
+      };
+
+      if (navTitle.complete) {
+        reveal();
       } else {
-        loginBtn.classList.remove("disabled");
-        loginBtn.removeAttribute("disabled");
+        navTitle.addEventListener("load", reveal);
       }
-    }) as EventListener);
-  }
+    }
+
+    const loginBtn = getLoginBtn();
+    if (loginBtn) {
+      loginBtn.addEventListener("click", () => {
+        window.dispatchEvent(new CustomEvent("open-login"));
+      });
+    }
+  });
 </script>

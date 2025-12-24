@@ -1,3 +1,10 @@
+---
+import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
 <div id="view-qq-input" class="login-window fade-in hidden">
   <button class="close-btn" data-action="close">
     <svg
@@ -15,13 +22,13 @@
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
-  <h2>QQ Login</h2>
-  <p class="instruction">Enter your QQ id to start</p>
+  <h2>{t("qq.title")}</h2>
+  <p class="instruction">{t("qq.instruction")}</p>
   <div class="input-group">
     <input
       type="text"
       id="qq-id-input"
-      placeholder="QQ"
+      placeholder={t("qq.input.placeholder")}
       class="input-field"
       minlength="5"
       maxlength="11"
@@ -29,8 +36,8 @@
     <div id="qq-id-error" class="input-error hidden"></div>
   </div>
 
-  <button id="btn-qq-next" class="submit-btn">Next</button>
-  <button class="back-text-btn" data-target="view-login">Back to Login</button>
+  <button id="btn-qq-next" class="submit-btn">{t("qq.next")}</button>
+  <button class="back-text-btn" data-target="view-login">{t("qq.back")}</button>
 </div>
 
 <style>

@@ -2,9 +2,9 @@
 
 import type { UserEntry } from "../config/marbleConfig";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
-import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
-import { DeviceMotionInteraction } from "./deviceMotionInteraction";
 import { AnimationLoop } from "./animationLoop";
+import { DeviceMotionInteraction } from "./deviceMotionInteraction";
+import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
 import { MarbleFactory } from "./marbleFactory";
 import { MarblePhysics } from "./marblePhysics";
 import type { Marble, MouseInteractionConfig } from "./mouseInteraction";

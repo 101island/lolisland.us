@@ -1,3 +1,10 @@
+---
+import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
 <div id="view-dashboard" class="login-window fade-in dashboard-view hidden">
   <button class="close-btn" data-action="close">
     <svg
@@ -18,8 +25,8 @@
   <div class="dashboard-avatar">
     <img id="dashboard-avatar-img" src="" alt="User Avatar">
   </div>
-  <h2>Logged In</h2>
-  <p class="instruction">Development in progress...</p>
+  <h2>{t("dashboard.logged_in")}</h2>
+  <p class="instruction">{t("dashboard.instruction")}</p>
 </div>
 
 <style>

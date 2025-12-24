@@ -1,16 +1,24 @@
 ---
-import MainView from "../components/MainView.astro";
+import { ClientRouter } from "astro:transitions";
+
+interface Props {
+  title: string;
+  lang?: string;
+}
+
+const { title, lang = "en" } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lolisland.us</title>
+    <title>{title}</title>
+    <ClientRouter/>
   </head>
   <body>
-    <MainView/>
+    <slot/>
   </body>
 </html>
 

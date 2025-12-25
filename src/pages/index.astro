@@ -1,80 +1,48 @@
 ---
-import MainView from "../components/MainView.astro";
+import Layout from "../layouts/Layout.astro";
+
+export const prerender = false;
+
+const acceptLang = Astro.request.headers.get("accept-language") || "";
+let targetUrl = "/en/";
+
+// Parse and sort languages by quality (q)
+// Example: "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"
+const languages = acceptLang
+  .split(",")
+  .map((part) => {
+    const [code, qPart] = part.split(";");
+    const q = qPart ? parseFloat(qPart.split("=")[1]) : 1.0;
+    return { code: code.trim().toLowerCase(), q };
+  })
+  .sort((a, b) => b.q - a.q);
+
+for (const lang of languages) {
+  if (lang.code.startsWith("ja")) {
+    targetUrl = "/ja/";
+    break;
+  }
+  if (lang.code.startsWith("zh")) {
+    if (
+      lang.code.includes("hk") ||
+      lang.code.includes("tw") ||
+      lang.code.includes("hant")
+    ) {
+      targetUrl = "/zh-hk/";
+    } else {
+      targetUrl = "/zh-cn/";
+    }
+    break;
+  }
+  if (lang.code.startsWith("en")) {
+    targetUrl = "/en/";
+    break;
+  }
+}
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lolisland.us</title>
-  </head>
-  <body>
-    <MainView/>
-  </body>
-</html>
-
-<style is:global>
-  :root {
-    --bg0: #050510;
-    --bg1: #1d0b3a;
-    --bg2: #0b234a;
-
-    --text: #f7f7ff;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    margin: 0;
-    min-height: 100vh;
-    min-height: 100dvh;
-    overflow: hidden;
-    background:
-      radial-gradient(
-        120% 120% at 20% 25%,
-        rgba(255, 127, 209, 0.35),
-        transparent 55%
-      ),
-      radial-gradient(
-        120% 120% at 80% 35%,
-        rgba(124, 251, 255, 0.25),
-        transparent 55%
-      ),
-      radial-gradient(
-        130% 140% at 50% 85%,
-        rgba(255, 209, 102, 0.22),
-        transparent 55%
-      ), linear-gradient(150deg, var(--bg0), var(--bg1) 45%, var(--bg2));
-    color: var(--text);
-    font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
-    letter-spacing: 0.02em;
-    background-repeat: no-repeat;
-    background-size: cover;
-  }
-
-  @media (max-width: 720px) {
-    body {
-      background:
-        radial-gradient(
-          140% 140% at 25% 15%,
-          rgba(255, 127, 209, 0.38),
-          transparent 55%
-        ),
-        radial-gradient(
-          130% 130% at 80% 25%,
-          rgba(124, 251, 255, 0.28),
-          transparent 55%
-        ),
-        radial-gradient(
-          150% 150% at 50% 90%,
-          rgba(255, 209, 102, 0.24),
-          transparent 60%
-        ), linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
-      background-repeat: no-repeat;
-      background-size: cover;
-    }
-  }
-</style>
+<Layout title="Loading...">
+  <script is:inline define:vars={{ targetUrl }}>
+    window.location.replace(targetUrl);
+  </script>
+</Layout>

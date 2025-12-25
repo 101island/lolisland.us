@@ -2,9 +2,9 @@
 
 import type { UserEntry } from "../config/marbleConfig";
 import { MARBLE_CONFIG } from "../config/marbleConfig";
-import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
-import { DeviceMotionInteraction } from "./deviceMotionInteraction";
 import { AnimationLoop } from "./animationLoop";
+import { DeviceMotionInteraction } from "./deviceMotionInteraction";
+import { DeviceOrientationInteraction } from "./deviceOrientationInteraction";
 import { MarbleFactory } from "./marbleFactory";
 import { MarblePhysics } from "./marblePhysics";
 import type { Marble, MouseInteractionConfig } from "./mouseInteraction";
@@ -35,6 +35,9 @@ export interface MarbleSystemConfig {
 export class MarbleSystem {
   private container: HTMLElement;
   private marbles: Marble[] = [];
+
+  // Mouse interaction enabled state
+  private mouseInteractionEnabled: boolean = true;
 
   // Subsystems
   private mouseInteraction: MouseInteraction;
@@ -173,9 +176,12 @@ export class MarbleSystem {
 
     for (let i = 0; i < subSteps; i++) {
       // Apply mouse force field
-      for (const marble of this.marbles) {
-        if (this.mouseInteraction.shouldApplyForce(marble)) {
-          this.mouseInteraction.applyForce(marble, subDt);
+      if (this.mouseInteractionEnabled) {
+        //mouse-interaction-trigger controll
+        for (const marble of this.marbles) {
+          if (this.mouseInteraction.shouldApplyForce(marble)) {
+            this.mouseInteraction.applyForce(marble, subDt);
+          }
         }
       }
 
@@ -310,9 +316,7 @@ export class MarbleSystem {
     }
   }
 
-  /**
-   * Request device motion permission
-   */
+  // Request device motion permission
   public async requestDeviceOrientationPermission(): Promise<boolean> {
     return this.deviceOrientationInteraction.requestPermission();
   }
@@ -321,9 +325,7 @@ export class MarbleSystem {
     return this.deviceMotionInteraction.requestPermission();
   }
 
-  /**
-   * Get device motion debug info see also MainView.astro
-   */
+  // Get device motion debug info see also MainView.astro
   public getAllDebugInfo() {
     return {
       ...this.deviceOrientationInteraction.getDebugInfo(),
@@ -354,6 +356,11 @@ export class MarbleSystem {
   // Toggle device orientation
   public setDeviceOrientation(enabled: boolean): void {
     this.deviceOrientationInteraction.updateConfig({ enable: enabled });
+  }
+
+  // Toggle mouse interaction
+  public setMouseInteraction(enabled: boolean): void {
+    this.mouseInteractionEnabled = enabled;
   }
 
   // Toggle debug mode (show velocity vectors)

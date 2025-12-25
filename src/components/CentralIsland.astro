@@ -1,0 +1,551 @@
+---
+import DashboardView from "./central-island/DashboardView.astro";
+import LoginView from "./central-island/LoginView.astro";
+import QQAuthView from "./central-island/QQAuthView.astro";
+import RegisterView from "./central-island/RegisterView.astro";
+import TitleCard from "./central-island/TitleCard.astro";
+import VerificationView from "./central-island/VerificationView.astro";
+
+// Props for the component
+const { titleSvg } = Astro.props;
+---
+
+<div class="island-container">
+  <TitleCard titleSvg={titleSvg}/>
+  <LoginView/>
+  <QQAuthView/>
+  <VerificationView/>
+  <RegisterView/>
+  <DashboardView/>
+</div>
+
+<script>
+  import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
+  import { defaultLang, languages, ui } from "../i18n/ui";
+
+  // Helpers that don't depend on DOM immediately
+  const getT = () => {
+    const currentLang =
+      (document.documentElement.lang as keyof typeof ui) || defaultLang;
+    const translations = ui[currentLang] || ui[defaultLang];
+    return function t(key: keyof typeof translations) {
+      return (
+        translations[key] ||
+        ui[defaultLang][key as keyof (typeof ui)["en"]] ||
+        key
+      );
+    };
+  };
+
+  // State (module-level, persists across nav if module reused in bundle, but usually we want reset?
+  // No, we want to maintain login state!)
+  // If we assume a SPA feel, login state should persist.
+  // Variables at top level of module persist.
+
+  // Actually, let's keep state here.
+  let isLoggedIn = false;
+  let currentQQ = "";
+  let isPolling = false;
+
+  // DOM Helpers (Dynamic)
+  const getViews = () => ({
+    title: document.getElementById("view-title"),
+    login: document.getElementById("view-login"),
+    qqInput: document.getElementById("view-qq-input"),
+    verification: document.getElementById("view-verification"),
+    register: document.getElementById("view-register"),
+    dashboard: document.getElementById("view-dashboard"),
+  });
+
+  const getInputs = () => ({
+    loginUser: document.getElementById("login-username") as HTMLInputElement,
+    loginPass: document.getElementById("login-password") as HTMLInputElement,
+    qqId: document.getElementById("qq-id-input") as HTMLInputElement,
+    regUser: document.getElementById("reg-username") as HTMLInputElement,
+    regPass: document.getElementById("reg-password") as HTMLInputElement,
+  });
+
+  const getDisplays = () => ({
+    loginError: document.getElementById("login-password-error"),
+    loginUserError: document.getElementById("login-username-error"),
+    loginPassError: document.getElementById("login-password-error"),
+    qqError: document.getElementById("qq-id-error"),
+    regError: document.getElementById("reg-password-error"),
+    regUserError: document.getElementById("reg-username-error"),
+    regPassError: document.getElementById("reg-password-error"),
+    verifyCode: document.getElementById("verification-code-display"),
+    dashAvatar: document.getElementById(
+      "dashboard-avatar-img",
+    ) as HTMLImageElement,
+  });
+
+  function switchView(viewName: string) {
+    const views = getViews();
+    Object.values(views).forEach((el) => {
+      if (el) el.classList.add("hidden");
+    });
+    // Safe check if viewName is a valid key
+    if (Object.hasOwn(views, viewName)) {
+      const el = views[viewName as keyof typeof views];
+      if (el) el.classList.remove("hidden");
+    }
+
+    // Persist View State
+    // Persist View State
+    const state = window._centralIslandState || {
+      inputs: {},
+      currentView: "title",
+      isLoggedIn: false,
+    };
+    state.currentView = viewName;
+    window._centralIslandState = state;
+
+    window.dispatchEvent(
+      new CustomEvent("view-change", { detail: { view: viewName } }),
+    );
+  }
+
+  function showError(element: HTMLElement | null, msg: string) {
+    if (element) {
+      element.textContent = msg;
+      element.classList.remove("hidden");
+    }
+  }
+
+  function clearErrors() {
+    const displays = getDisplays();
+    [
+      displays.loginUserError,
+      displays.loginPassError,
+      displays.qqError,
+      displays.regUserError,
+      displays.regPassError,
+    ].forEach((el) => {
+      el?.classList.add("hidden");
+    });
+  }
+
+  function updateDashboard() {
+    const displays = getDisplays();
+    if (displays.dashAvatar) {
+      if (currentQQ) {
+        displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
+      } else {
+        displays.dashAvatar.src =
+          "https://ui-avatars.com/api/?name=User&background=random";
+      }
+    }
+  }
+
+  function handleLoginSuccess(token: string, qq: string) {
+    localStorage.setItem("token", token);
+    if (qq) {
+      localStorage.setItem("qq", String(qq));
+      currentQQ = String(qq);
+    }
+    isLoggedIn = true;
+    updateDashboard();
+    window.dispatchEvent(new CustomEvent("login-success"));
+    switchView("dashboard");
+  }
+
+  function setLoading(btnId: string, isLoading: boolean, originalText: string) {
+    const btn = document.getElementById(btnId) as HTMLButtonElement | null;
+    if (!btn) return;
+
+    if (isLoading) {
+      btn.dataset.originalText = originalText;
+      btn.innerHTML = '<span class="btn-spinner"></span>';
+      btn.disabled = true;
+    } else {
+      btn.innerHTML = btn.dataset.originalText || originalText;
+      btn.disabled = false;
+    }
+  }
+
+  // --- Auth Logic ---
+  async function performLogin() {
+    const inputs = getInputs();
+    const displays = getDisplays();
+    const t = getT();
+
+    const u = inputs.loginUser?.value;
+    const p = inputs.loginPass?.value;
+
+    clearErrors();
+    let hasError = false;
+    if (!u) {
+      showError(displays.loginUserError, t("error.username_required"));
+      hasError = true;
+    }
+    if (!p) {
+      showError(displays.loginPassError, t("error.password_required"));
+      hasError = true;
+    }
+    if (hasError) return;
+
+    setLoading("btn-login-submit", true, t("login.submit"));
+    try {
+      const res = await fetch(`${BACKEND_API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        handleLoginSuccess(data.token, data.qq);
+        if (inputs.loginUser) inputs.loginUser.value = "";
+        if (inputs.loginPass) inputs.loginPass.value = "";
+      } else {
+        showError(
+          displays.loginPassError,
+          data.error || t("error.login_failed"),
+        );
+      }
+    } catch (e) {
+      showError(displays.loginPassError, t("error.network"));
+    } finally {
+      setLoading("btn-login-submit", false, t("login.submit"));
+    }
+  }
+
+  async function startQQAuth() {
+    const inputs = getInputs();
+    const displays = getDisplays();
+    const t = getT();
+
+    const qq = inputs.qqId?.value;
+    clearErrors();
+    if (!qq) return showError(displays.qqError, t("qq.error.required"));
+    if (!/^\d{5,11}$/.test(qq))
+      return showError(displays.qqError, t("qq.error.format"));
+
+    setLoading("btn-qq-next", true, t("qq.next"));
+    try {
+      const res = await fetch(`${BACKEND_API_BASE}/auth/qq/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qq }),
+      });
+      const data = await res.json();
+      if (data.code) {
+        if (displays.verifyCode)
+          displays.verifyCode.textContent = `/login ${data.code}`;
+        currentQQ = qq;
+        switchView("verification");
+        startPolling(qq);
+      } else {
+        showError(displays.qqError, data.error || t("qq.error.failed_start"));
+      }
+    } catch (e) {
+      showError(displays.qqError, t("error.network"));
+    } finally {
+      setLoading("btn-qq-next", false, t("qq.next"));
+    }
+  }
+
+  function startPolling(qqToPoll: string) {
+    isPolling = true;
+
+    const poll = async () => {
+      if (!isPolling) return;
+
+      try {
+        const res = await fetch(
+          `${BACKEND_API_BASE}/auth/qq/status?qq=${qqToPoll}`,
+        );
+
+        if (!isPolling) return; // Check again after await
+
+        const data = await res.json();
+
+        if (data.status === "verified") {
+          isPolling = false;
+          switchView("register");
+        } else if (data.status === "authenticated") {
+          isPolling = false;
+          handleLoginSuccess(data.token, data.qq);
+        } else {
+          // Status pending or other, retry immediately
+          if (isPolling) poll();
+        }
+      } catch (e) {
+        console.error("Polling error", e);
+        // Retry immediately on error
+        if (isPolling) poll();
+      }
+    };
+
+    poll();
+  }
+
+  async function performRegister() {
+    const inputs = getInputs();
+    const displays = getDisplays();
+    const t = getT();
+
+    const u = inputs.regUser?.value;
+    const p = inputs.regPass?.value;
+
+    clearErrors();
+    let hasError = false;
+    if (!u) {
+      showError(displays.regUserError, t("error.username_required"));
+      hasError = true;
+    }
+    if (!p) {
+      showError(displays.regPassError, t("error.password_required"));
+      hasError = true;
+    }
+    if (hasError) return;
+
+    setLoading("btn-register-submit", true, t("register.submit"));
+    try {
+      const res = await fetch(`${BACKEND_API_BASE}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p, qq: currentQQ }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const loginRes = await fetch(`${BACKEND_API_BASE}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+        const loginData = await loginRes.json();
+        if (loginData.token) {
+          handleLoginSuccess(loginData.token, loginData.qq);
+        } else {
+          switchView("login");
+        }
+      } else {
+        showError(displays.regPassError, data.error || "Registration failed");
+      }
+    } catch (e) {
+      showError(displays.regPassError, t("error.network"));
+    } finally {
+      setLoading("btn-register-submit", false, t("register.submit"));
+    }
+  }
+
+  function checkLoginState() {
+    const token = localStorage.getItem("token");
+    const storedQQ = localStorage.getItem("qq");
+    isLoggedIn = !!token;
+    if (storedQQ) currentQQ = storedQQ;
+
+    if (isLoggedIn) {
+      updateDashboard();
+      switchView("dashboard");
+    } else {
+      switchView("title");
+    }
+  }
+
+  // One-time GLOBAL listeners for window events
+  // Check flag to avoid double binding (though window events are idempotent if same ref... but we use anonymous checks inside?)
+  // Using a flag property on window is safer for module re-execution scenarios (though likely runs once).
+  // Using a flag property on window is safer for module re-execution scenarios (though likely runs once).
+  if (!window._centralIslandListenersAttached) {
+    window._centralIslandListenersAttached = true;
+
+    // We attach these once. They will call `checkLoginState` or `switchView`.
+    // These functions depend on `getViews`, `getInputs` which query DOM dynamically.
+    // So this is safe across navigations!
+
+    window.addEventListener("open-login", () => {
+      if (isLoggedIn) {
+        switchView("dashboard");
+      } else {
+        switchView("login");
+      }
+    });
+
+    window.addEventListener("login-success", () => {
+      const token = localStorage.getItem("token");
+      isLoggedIn = !!token;
+      const storedQQ = localStorage.getItem("qq");
+      if (storedQQ) currentQQ = storedQQ;
+      updateDashboard();
+      if (isLoggedIn) switchView("dashboard");
+    });
+
+    window.addEventListener("logout-success", () => {
+      isLoggedIn = false;
+      currentQQ = "";
+      localStorage.removeItem("token");
+      localStorage.removeItem("qq");
+      switchView("title");
+    });
+  }
+
+  // Persistence
+  const getGlobalState = () =>
+    window._centralIslandState || {
+      inputs: {},
+      currentView: "title", // Default to title if fresh load
+      isLoggedIn: false,
+    };
+
+  const saveGlobalState = (
+    state: NonNullable<Window["_centralIslandState"]>,
+  ) => {
+    window._centralIslandState = state;
+  };
+
+  // Per-page initialization
+  document.addEventListener("astro:page-load", () => {
+    // Restore state
+    const savedState = getGlobalState();
+
+    // Restore variables
+    const inputs = getInputs();
+
+    // Restore inputs
+    if (savedState.inputs) {
+      if (inputs.loginUser && savedState.inputs.loginUser)
+        inputs.loginUser.value = savedState.inputs.loginUser;
+      if (inputs.loginPass && savedState.inputs.loginPass)
+        inputs.loginPass.value = savedState.inputs.loginPass;
+      if (inputs.qqId && savedState.inputs.qqId)
+        inputs.qqId.value = savedState.inputs.qqId;
+      if (inputs.regUser && savedState.inputs.regUser)
+        inputs.regUser.value = savedState.inputs.regUser;
+      // Use regPass for input restoration
+      if (inputs.regPass && savedState.inputs.regPass)
+        inputs.regPass.value = savedState.inputs.regPass;
+    }
+
+    // Restore View (if user was in login form, keep them there)
+    checkLoginState(); // This sets isLoggedIn flag based on token
+
+    // If NOT logged in, we might be in 'login' or 'register' or 'qqInput' view
+    if (
+      !isLoggedIn &&
+      savedState.currentView &&
+      savedState.currentView !== "dashboard"
+    ) {
+      switchView(savedState.currentView);
+    }
+
+    // Attach listeners
+    const saveInputs = () => {
+      const state = getGlobalState();
+      state.inputs = {
+        loginUser: inputs.loginUser?.value || "",
+        loginPass: inputs.loginPass?.value || "",
+        qqId: inputs.qqId?.value || "",
+        regUser: inputs.regUser?.value || "",
+        regPass: inputs.regPass?.value || "",
+      };
+      saveGlobalState(state);
+    };
+
+    Object.values(inputs).forEach((input) => {
+      input?.addEventListener("input", saveInputs);
+    });
+
+    const views = getViews();
+
+    if (views.title) {
+      views.title.addEventListener("click", () => {
+        if (isLoggedIn) {
+          switchView("dashboard");
+        } else {
+          switchView("login");
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-action="close"]').forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        switchView("title");
+        isPolling = false;
+        clearErrors();
+        // Displath close-login to let SettingsMenu/others know
+        window.dispatchEvent(new CustomEvent("close-login"));
+      });
+    });
+
+    document
+      .getElementById("btn-login-submit")
+      ?.addEventListener("click", performLogin);
+    document
+      .getElementById("btn-qq-mode")
+      ?.addEventListener("click", () => switchView("qqInput"));
+
+    const btnQQNext = document.getElementById(
+      "btn-qq-next",
+    ) as HTMLButtonElement;
+    if (btnQQNext) {
+      // Restore button state
+      if (inputs.qqId && /^\d{5,11}$/.test(inputs.qqId.value)) {
+        btnQQNext.disabled = false;
+      } else {
+        btnQQNext.disabled = true;
+      }
+
+      btnQQNext.addEventListener("click", startQQAuth);
+    }
+
+    if (inputs.qqId) {
+      inputs.qqId.addEventListener("input", () => {
+        const val = inputs.qqId.value;
+        const isValid = /^\d{5,11}$/.test(val);
+        if (btnQQNext) btnQQNext.disabled = !isValid;
+      });
+    }
+
+    document
+      .getElementById("btn-cancel-verify")
+      ?.addEventListener("click", () => {
+        isPolling = false;
+        switchView("qqInput");
+      });
+
+    document
+      .getElementById("btn-register-submit")
+      ?.addEventListener("click", performRegister);
+
+    document.querySelectorAll(".back-text-btn").forEach((btn) => {
+      const target = btn.getAttribute("data-target");
+      if (target) {
+        btn.addEventListener("click", () => {
+          switchView(target === "view-login" ? "login" : "title");
+          clearErrors();
+        });
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  .btn-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<style>
+  .island-container {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+  }
+</style>

@@ -1,7 +1,5 @@
-/**
- * Device orientation interaction system
- * Handles the effect of device tilt (gravity) on marbles
- */
+// Device orientation interaction system
+// Handles the effect of device tilt (gravity) on marbles
 
 import type { Marble } from "./mouseInteraction";
 
@@ -24,9 +22,7 @@ export class DeviceOrientationInteraction {
     this.config = config;
   }
 
-  /**
-   * Initialize device orientation listener
-   */
+  // Initialize device orientation listener
   public init(): void {
     if (typeof window === "undefined") return;
 
@@ -40,12 +36,10 @@ export class DeviceOrientationInteraction {
     }
   }
 
-  /**
-   * Handle device orientation event
-   * alpha: rotation around Z (compass heading) in degrees, range [0, 360)
-   * beta: front-to-back tilt in degrees, range [-180, 180)
-   * gamma: left-to-right tilt in degrees, range [-90, 90)
-   */
+  // Handle device orientation event
+  // alpha: rotation around Z (compass heading) in degrees, range [0, 360)
+  // beta: front-to-back tilt in degrees, range [-180, 180)
+  // gamma: left-to-right tilt in degrees, range [-90, 90)
   private handleOrientation(event: DeviceOrientationEvent): void {
     const { alpha, beta, gamma } = event;
 
@@ -82,24 +76,20 @@ export class DeviceOrientationInteraction {
     };
   }
 
-  /**
-   * Get whether supported and active
-   */
+  // Get whether supported and active
   public isActivated(): boolean {
     return this.isActive;
   }
 
-  /**
-   * Request Permission (iOS 13+ need permission for DeviceOrientation too)
-   */
+  // Request Permission (iOS 13+ need permission for DeviceOrientation too)
   public async requestPermission(): Promise<boolean> {
+    const DeviceOrientationEvent = window.DeviceOrientationEvent;
     if (
-      typeof (DeviceOrientationEvent as any).requestPermission === "function"
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
     ) {
       try {
-        const response = await (
-          DeviceOrientationEvent as any
-        ).requestPermission();
+        const response = await DeviceOrientationEvent.requestPermission();
         if (response === "granted") {
           this.init();
           return true;
@@ -114,16 +104,12 @@ export class DeviceOrientationInteraction {
     return true;
   }
 
-  /**
-   * Check if gravity is active and significant
-   */
+  // Check if gravity is active and significant
   public hasActiveGravity(): boolean {
     return this.isActive && (this.ax !== 0 || this.ay !== 0);
   }
 
-  /**
-   * Get current acceleration vector
-   */
+  // Get current acceleration vector
   public getAcceleration(): { x: number; y: number } {
     return { x: this.ax, y: this.ay };
   }
@@ -132,9 +118,7 @@ export class DeviceOrientationInteraction {
     return this.config.enable;
   }
 
-  /**
-   * Apply Force (Gravity)
-   */
+  // Apply Force (Gravity)
   public applyForce(marbles: Marble[], dt: number): void {
     if (!this.isActive || !this.config.enable) return;
 
@@ -152,9 +136,7 @@ export class DeviceOrientationInteraction {
     }
   }
 
-  /**
-   * Update Config
-   */
+  // Update Config
   public updateConfig(config: Partial<DeviceOrientationConfig>): void {
     this.config = { ...this.config, ...config };
   }

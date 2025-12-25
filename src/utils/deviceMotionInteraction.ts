@@ -1,7 +1,5 @@
-/**
- * Device motion interaction system
- * Handles the effect of device tilt (acceleration) on marbles
- */
+// Device motion interaction system
+// Handles the effect of device tilt (acceleration) on marbles
 
 import type { Marble } from "./mouseInteraction";
 
@@ -21,9 +19,7 @@ export class DeviceMotionInteraction {
     this.config = config;
   }
 
-  /**
-   * Initialize device motion listener
-   */
+  // Initialize device motion listener
   public init(): void {
     if (typeof window === "undefined") return;
 
@@ -34,9 +30,7 @@ export class DeviceMotionInteraction {
     }
   }
 
-  /**
-   * Handle device motion event
-   */
+  // Handle device motion event
   private handleMotion(event: DeviceMotionEvent): void {
     // x axis acceleration
     // y axis acceleration
@@ -47,9 +41,7 @@ export class DeviceMotionInteraction {
     }
   }
 
-  /**
-   * Get Debug Info
-   */
+  // Get Debug Info
   public getDebugInfo(): {
     motionSupported: boolean;
     motionActive: boolean;
@@ -65,20 +57,21 @@ export class DeviceMotionInteraction {
     };
   }
 
-  /**
-   * Get whether supported and active
-   */
+  // Get whether supported and active
   public isActivated(): boolean {
     return this.isActive;
   }
 
-  /**
-   * Request Permission（iOS 13+）
-   */
+  // Request Permission（iOS 13+）
+  // Request Permission（iOS 13+）
   public async requestPermission(): Promise<boolean> {
-    if (typeof (DeviceMotionEvent as any).requestPermission === "function") {
+    const DeviceMotionEvent = window.DeviceMotionEvent;
+    if (
+      typeof DeviceMotionEvent !== "undefined" &&
+      typeof DeviceMotionEvent.requestPermission === "function"
+    ) {
       try {
-        const response = await (DeviceMotionEvent as any).requestPermission();
+        const response = await DeviceMotionEvent.requestPermission();
         if (response === "granted") {
           this.init();
           return true;
@@ -92,9 +85,7 @@ export class DeviceMotionInteraction {
     return true; // Non iOS 13+ devices do not require a request
   }
 
-  /**
-   * Apply Force
-   */
+  // Apply Force
   public applyForce(marbles: Marble[], dt: number): void {
     if (!this.isActive || !this.config.enable) return;
     // Threshold filtering to prevent jitter
@@ -126,9 +117,7 @@ export class DeviceMotionInteraction {
     }
   }
 
-  /**
-   * Update Config
-   */
+  // Update Config
   public updateConfig(config: Partial<DeviceMotionConfig>): void {
     this.config = { ...this.config, ...config };
   }

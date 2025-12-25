@@ -1,0 +1,88 @@
+---
+import { ClientRouter } from "astro:transitions";
+
+interface Props {
+  title: string;
+  lang?: string;
+}
+
+const { title, lang = "en" } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <ClientRouter/>
+  </head>
+  <body>
+    <slot/>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg0: #050510;
+    --bg1: #1d0b3a;
+    --bg2: #0b234a;
+
+    --text: #f7f7ff;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background:
+      radial-gradient(
+        120% 120% at 20% 25%,
+        rgba(255, 127, 209, 0.35),
+        transparent 55%
+      ),
+      radial-gradient(
+        120% 120% at 80% 35%,
+        rgba(124, 251, 255, 0.25),
+        transparent 55%
+      ),
+      radial-gradient(
+        130% 140% at 50% 85%,
+        rgba(255, 209, 102, 0.22),
+        transparent 55%
+      ), linear-gradient(150deg, var(--bg0), var(--bg1) 45%, var(--bg2));
+    color: var(--text);
+    font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+    letter-spacing: 0.02em;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  @media (max-width: 720px) {
+    body {
+      background:
+        radial-gradient(
+          140% 140% at 25% 15%,
+          rgba(255, 127, 209, 0.38),
+          transparent 55%
+        ),
+        radial-gradient(
+          130% 130% at 80% 25%,
+          rgba(124, 251, 255, 0.28),
+          transparent 55%
+        ),
+        radial-gradient(
+          150% 150% at 50% 90%,
+          rgba(255, 209, 102, 0.24),
+          transparent 60%
+        ), linear-gradient(160deg, var(--bg0), var(--bg1) 40%, var(--bg2));
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+  }
+</style>

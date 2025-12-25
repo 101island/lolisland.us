@@ -1,0 +1,255 @@
+---
+import { languages } from "../i18n/ui";
+import { getLangFromUrl, getTranslatedPath } from "../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const translatePath = getTranslatedPath(lang);
+
+// https://flagicons.lipis.dev/
+const flags: Record<string, string> = {
+  en: "i-flag:us-4x3",
+  "zh-cn": "i-flag:cn-4x3",
+  "zh-hk": "i-flag:hk-4x3",
+  ja: "i-flag:jp-4x3",
+};
+
+const currentFlagClass = flags[lang];
+const currentLabel = languages[lang as keyof typeof languages] || lang;
+---
+
+<div class="lang-dropdown">
+  <button class="lang-toggle-btn" aria-label="Select Language">
+    {
+      currentFlagClass ? (
+        <span class={`lang-flag ${currentFlagClass}`} />
+      ) : (
+        <span class="lang-flag">🏳️</span>
+      )
+    }
+    <span class="lang-text">{currentLabel}</span>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="chevron-down"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  <div class="dropdown-menu">
+    {
+      Object.entries(languages).map(([label, name]) => (
+        <a
+          href={translatePath("/", label)}
+          class={`menu-item ${lang === label ? "active" : ""}`}
+        >
+          {flags[label] ? (
+            <span class={`item-flag ${flags[label]}`} />
+          ) : (
+            <span class="item-flag">🏳️</span>
+          )}
+          <span class="item-text">{name}</span>
+          <svg
+            class="spinner"
+            xmlns="http://www.w3.org/2000/svg"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        </a>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    const dropdown = document.querySelector(".lang-dropdown");
+    const toggleBtn = dropdown?.querySelector(".lang-toggle-btn");
+    const menu = dropdown?.querySelector(".dropdown-menu");
+
+    if (toggleBtn && menu && dropdown) {
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menu.classList.toggle("active");
+        toggleBtn.classList.toggle("active");
+      });
+
+      const menuItems = menu.querySelectorAll("a");
+      menuItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          item.classList.add("loading");
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!dropdown.contains(e.target as Node)) {
+          menu.classList.remove("active");
+          toggleBtn.classList.remove("active");
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  .lang-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .lang-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 0.4rem 0.4rem;
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .lang-toggle-btn:hover,
+  .lang-toggle-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .lang-flag {
+    font-size: 1.1rem;
+    border-radius: 4px;
+    display: block;
+  }
+
+  .lang-text {
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .chevron-down {
+    opacity: 0.7;
+    transition: transform 0.2s;
+  }
+
+  .lang-toggle-btn.active .chevron-down {
+    transform: rotate(180deg);
+  }
+
+  .spinner {
+    display: none;
+    animation: spin 1s linear infinite;
+    opacity: 0.7;
+  }
+
+  .menu-item.loading {
+    justify-content: center;
+  }
+
+  .menu-item.loading .item-text,
+  .menu-item.loading .item-flag {
+    display: none;
+  }
+
+  .menu-item.loading .spinner {
+    display: block;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Dropdown Menu */
+  .dropdown-menu {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    min-width: 160px;
+    background: rgba(15, 15, 15, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+  }
+
+  .dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .menu-item.active {
+    background: linear-gradient(
+      135deg,
+      rgba(124, 251, 255, 0.2),
+      rgba(124, 251, 255, 0.05)
+    );
+    color: #7cfbff;
+    border: 1px solid rgba(124, 251, 255, 0.2);
+  }
+
+  .item-flag {
+    font-size: 1.2rem;
+    border-radius: 2px;
+    display: block;
+  }
+
+  .item-text {
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    line-height: 1;
+  }
+</style>

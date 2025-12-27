@@ -235,10 +235,12 @@ export class MarbleSystem {
   }
 
   // Batch add marbles
-  public async addMarbles(entries: UserEntry[]): Promise<Marble[]> {
-    const newMarbles = await this.factory.createMarbles(entries);
-    this.marbles.push(...newMarbles);
-    return newMarbles;
+  public addMarbles(entries: UserEntry[]): void {
+    entries.forEach((entry) => {
+      this.addMarble(entry).catch((err) => {
+        console.warn(`add marble for ${entry.id}:`, err);
+      });
+    });
   }
 
   // Remove marble

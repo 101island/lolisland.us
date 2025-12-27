@@ -84,49 +84,50 @@ export class MarbleFactory {
 
   // Create marble (async image loading)
   public async createMarble(entry: UserEntry): Promise<Marble> {
-    return new Promise((resolve, reject) => {
-      if (!entry?.id) {
-        reject(new Error("Invalid user entry"));
-        return;
-      }
+    if (!entry?.id) {
+      throw new Error("Invalid user entry");
+    }
 
-      const url = this.getAvatarUrl(entry.id);
-      const img = new Image();
+    const url = this.getAvatarUrl(entry.id);
+    const img = new Image();
+    img.src = url;
 
-      img.onload = () => {
-        const size = this.calculateMarbleSize();
-        const radius = size / 2;
-        const wrapper = this.createMarbleWrapper(entry, size, url);
-        const physics = this.generateRandomPhysics(radius);
+    try {
+      await img.decode();
+    } catch (e) {
+      throw new Error(`Failed to load image: ${url}`);
+    }
 
-        const { massScale, massOffset } = MARBLE_CONFIG.physics;
-        const marble: Marble = {
-          id: entry.id,
-          node: wrapper,
-          x: physics.x,
-          y: physics.y,
-          vx: physics.vx,
-          vy: physics.vy,
-          radius,
-          mass: radius * radius * massScale + massOffset,
-        };
+    const size = this.calculateMarbleSize();
+    const radius = size / 2;
+    const wrapper = this.createMarbleWrapper(entry, size, url);
+    const physics = this.generateRandomPhysics(radius);
 
-        this.container.appendChild(wrapper);
+    // Pre-set position to avoid flashing at 0,0
+    wrapper.style.transform = `translate(${physics.x - radius}px, ${physics.y - radius
+      }px)`;
 
-        // Fade in animation
-        setTimeout(() => {
-          wrapper.style.opacity = "1";
-        }, MARBLE_CONFIG.animation.fadeInDelay);
+    const { massScale, massOffset } = MARBLE_CONFIG.physics;
+    const marble: Marble = {
+      id: entry.id,
+      node: wrapper,
+      x: physics.x,
+      y: physics.y,
+      vx: physics.vx,
+      vy: physics.vy,
+      radius,
+      mass: radius * radius * massScale + massOffset,
+    };
 
-        resolve(marble);
-      };
+    this.container.appendChild(wrapper);
 
-      img.onerror = () => {
-        reject(new Error(`Failed to load image: ${url}`));
-      };
-
-      img.src = url;
+    // Fade in animation
+    requestAnimationFrame(() => {
+      wrapper.style.transition = "opacity 0.5s ease";
+      wrapper.style.opacity = "1";
     });
+
+    return marble;
   }
 
   // Batch create marbles

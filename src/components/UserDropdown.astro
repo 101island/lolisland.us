@@ -158,7 +158,8 @@ const t = getTranslations(lang);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 0.6rem;
-    min-width: 140px;
+    width: max-content;
+    min-width: 100px; /* Optional: keep a small min-width if desired, or remove */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     z-index: 1001;
     display: flex;
@@ -183,6 +184,7 @@ const t = getTranslations(lang);
     align-items: center;
     justify-content: center; /* Center text */
     width: 100%;
+    white-space: nowrap; /* Prevent wrapping */
     padding: 0.8rem 1rem;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */

@@ -15,19 +15,30 @@ const t = getTranslations(lang);
 </div>
 
 <script>
-  import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
+  // import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
+  const BACKEND_API_BASE = import.meta.env.PUBLIC_API_BASE ?? "/api";
 
-  const userDropdown = document.querySelector(".user-dropdown") as HTMLElement;
-  const avatarImg = document.querySelector(
-    ".user-avatar-img",
-  ) as HTMLImageElement;
-  const avatarBtn = document.querySelector(
-    ".user-avatar-btn",
-  ) as HTMLButtonElement;
-  const dropdownMenu = document.querySelector(".dropdown-menu") as HTMLElement;
-  const logoutBtn = document.querySelector(".logout-btn") as HTMLButtonElement;
+  function getUserDropdownElements() {
+    const container = document.querySelector(".user-dropdown") as HTMLElement;
+    if (!container) return null;
+    return {
+      container,
+      avatarImg: container.querySelector(
+        ".user-avatar-img",
+      ) as HTMLImageElement,
+      avatarBtn: container.querySelector(
+        ".user-avatar-btn",
+      ) as HTMLButtonElement,
+      dropdownMenu: container.querySelector(".dropdown-menu") as HTMLElement,
+      logoutBtn: container.querySelector(".logout-btn") as HTMLButtonElement,
+    };
+  }
 
   async function updateAvatar() {
+    const els = getUserDropdownElements();
+    if (!els) return;
+    const { container, avatarImg } = els;
+
     let qq = localStorage.getItem("qq");
     const token = localStorage.getItem("token");
 
@@ -57,44 +68,51 @@ const t = getTranslations(lang);
         avatarImg.src =
           "https://ui-avatars.com/api/?name=User&background=random";
       }
-      userDropdown.classList.remove("hidden");
+      container.classList.remove("hidden");
     } else {
-      userDropdown.classList.add("hidden");
+      container.classList.add("hidden");
     }
   }
 
-  // Initial check
-  updateAvatar();
-
-  // Listen for login success event
+  // Listeners that persist across navigations
   window.addEventListener("login-success", updateAvatar);
 
-  // Toggle Dropdown
-  if (avatarBtn) {
-    avatarBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dropdownMenu.classList.toggle("active");
-    });
-  }
-
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (Global listener)
   document.addEventListener("click", (e) => {
-    if (userDropdown && !userDropdown.contains(e.target as Node)) {
-      dropdownMenu.classList.remove("active");
+    const els = getUserDropdownElements();
+    if (els && !els.container.contains(e.target as Node)) {
+      els.dropdownMenu.classList.remove("active");
     }
   });
 
-  // Logout
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("qq");
-      userDropdown.classList.add("hidden");
-      dropdownMenu.classList.remove("active");
-      // Notify other components if necessary, e.g. show login button again
-      window.dispatchEvent(new CustomEvent("logout-success"));
-    });
-  }
+  // Per-page initialization
+  document.addEventListener("astro:page-load", () => {
+    updateAvatar();
+
+    const els = getUserDropdownElements();
+    if (!els) return;
+    const { container, avatarBtn, dropdownMenu, logoutBtn } = els;
+
+    // Toggle Dropdown
+    if (avatarBtn) {
+      avatarBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle("active");
+      });
+    }
+
+    // Logout
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("qq");
+        container.classList.add("hidden");
+        dropdownMenu.classList.remove("active");
+        // Notify other components if necessary, e.g. show login button again
+        window.dispatchEvent(new CustomEvent("logout-success"));
+      });
+    }
+  });
 </script>
 
 <style>

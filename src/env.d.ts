@@ -1,5 +1,21 @@
 /// <reference types="astro/client" />
 
+interface ImportMetaEnv {
+  readonly PUBLIC_API_BASE?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+type Runtime = import("@astrojs/cloudflare").Runtime<
+  import("./pages/api/_types").Bindings
+>;
+
+declare namespace App {
+  interface Locals extends Runtime {}
+}
+
 interface DeviceMotionEventStatic {
   requestPermission?: () => Promise<"granted" | "denied">;
 }

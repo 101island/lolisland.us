@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "dev:remote": "PUBLIC_API_BASE=https://lolisland.us/api astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && esbuild src/pages/api/_do/verification.ts --outfile=dist/_worker.js/do.js --format=esm --bundle --external:cloudflare:workers && echo \"export { VerificationDO } from './do.js';\" >> dist/_worker.js/index.js",
     "preview": "astro preview",
     "format": "biome format --write .",
     "lint": "biome lint --write .",
@@ -19,12 +20,15 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "astro": "^5.0.0",
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.11.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.8",
     "@iconify-json/flag": "^1.2.10",
+    "@types/bcryptjs": "^2.4.6",
     "@unocss/preset-icons": "^66.5.10",
     "unocss": "^66.5.10"
   }

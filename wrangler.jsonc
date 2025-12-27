@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lolisland-us",
+  "main": "./dist/_worker.js/index.js",
+  "compatibility_date": "2025-12-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VERIFICATION",
+        "class_name": "VerificationDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["VerificationDO"]
+    }
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "loliscore-db",
+      "database_id": "572119d8-ab9d-4dc7-87ec-f5bb1aabcabb"
+    }
+  ]
+}

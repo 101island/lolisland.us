@@ -5,7 +5,12 @@ import UnoCSS from "unocss/astro";
 
 // https://astro.build/config
 export default defineConfig({
-  adapter: cloudflare(),
+  output: "static",
+  adapter: cloudflare({
+    platformProxy: {
+      enabled: true,
+    },
+  }),
   integrations: [react(), UnoCSS()],
   i18n: {
     defaultLocale: "zh-cn",

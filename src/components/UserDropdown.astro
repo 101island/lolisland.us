@@ -17,84 +17,97 @@ const t = getTranslations(lang);
 <script>
   import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
 
-  const userDropdown = document.querySelector(".user-dropdown") as HTMLElement;
-  const avatarImg = document.querySelector(
-    ".user-avatar-img",
-  ) as HTMLImageElement;
-  const avatarBtn = document.querySelector(
-    ".user-avatar-btn",
-  ) as HTMLButtonElement;
-  const dropdownMenu = document.querySelector(".dropdown-menu") as HTMLElement;
-  const logoutBtn = document.querySelector(".logout-btn") as HTMLButtonElement;
+  // Wrap in astro:page-load to support View Transitions
+  document.addEventListener("astro:page-load", () => {
+    const userDropdown = document.querySelector(
+      ".user-dropdown",
+    ) as HTMLElement;
+    // If component is not on page, exit
+    if (!userDropdown) return;
 
-  async function updateAvatar() {
-    let qq = localStorage.getItem("qq");
-    const token = localStorage.getItem("token");
+    // Scope selectors to this component instance
+    const avatarImg = userDropdown.querySelector(
+      ".user-avatar-img",
+    ) as HTMLImageElement;
+    const avatarBtn = userDropdown.querySelector(
+      ".user-avatar-btn",
+    ) as HTMLButtonElement;
+    const dropdownMenu = userDropdown.querySelector(
+      ".dropdown-menu",
+    ) as HTMLElement;
+    const logoutBtn = userDropdown.querySelector(
+      ".logout-btn",
+    ) as HTMLButtonElement;
 
-    if (token) {
-      if (!qq) {
-        try {
-          // Fetch user info from backend if token exists but QQ is missing
-          const res = await fetch(`${BACKEND_API_BASE}/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.qq) {
-              qq = String(data.qq);
-              localStorage.setItem("qq", qq);
+    async function updateAvatar() {
+      let qq = localStorage.getItem("qq");
+      const token = localStorage.getItem("token");
+
+      if (token) {
+        if (!qq) {
+          try {
+            // Fetch user info from backend if token exists but QQ is missing
+            const res = await fetch(`${BACKEND_API_BASE}/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.qq) {
+                qq = String(data.qq);
+                localStorage.setItem("qq", qq);
+              }
             }
+          } catch (e) {
+            console.error("Failed to fetch user info", e);
           }
-        } catch (e) {
-          console.error("Failed to fetch user info", e);
         }
-      }
 
-      if (qq) {
-        avatarImg.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${qq}&spec=640&img_type=jpg`;
+        if (qq) {
+          avatarImg.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${qq}&spec=640&img_type=jpg`;
+        } else {
+          // Default avatar or placeholder if QQ is missing and fetch failed
+          avatarImg.src =
+            "https://ui-avatars.com/api/?name=User&background=random";
+        }
+        userDropdown.classList.remove("hidden");
       } else {
-        // Default avatar or placeholder if QQ is missing and fetch failed
-        avatarImg.src =
-          "https://ui-avatars.com/api/?name=User&background=random";
+        userDropdown.classList.add("hidden");
       }
-      userDropdown.classList.remove("hidden");
-    } else {
-      userDropdown.classList.add("hidden");
     }
-  }
 
-  // Initial check
-  updateAvatar();
+    // Initial check
+    updateAvatar();
 
-  // Listen for login success event
-  window.addEventListener("login-success", updateAvatar);
+    // Listen for login success event
+    window.addEventListener("login-success", updateAvatar);
 
-  // Toggle Dropdown
-  if (avatarBtn) {
-    avatarBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dropdownMenu.classList.toggle("active");
+    // Toggle Dropdown
+    if (avatarBtn) {
+      avatarBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle("active");
+      });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (userDropdown && !userDropdown.contains(e.target as Node)) {
+        dropdownMenu.classList.remove("active");
+      }
     });
-  }
 
-  // Close dropdown when clicking outside
-  document.addEventListener("click", (e) => {
-    if (userDropdown && !userDropdown.contains(e.target as Node)) {
-      dropdownMenu.classList.remove("active");
+    // Logout
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("qq");
+        userDropdown.classList.add("hidden");
+        dropdownMenu.classList.remove("active");
+        // Notify other components if necessary, e.g. show login button again
+        window.dispatchEvent(new CustomEvent("logout-success"));
+      });
     }
   });
-
-  // Logout
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("qq");
-      userDropdown.classList.add("hidden");
-      dropdownMenu.classList.remove("active");
-      // Notify other components if necessary, e.g. show login button again
-      window.dispatchEvent(new CustomEvent("logout-success"));
-    });
-  }
 </script>
 
 <style>
@@ -145,7 +158,8 @@ const t = getTranslations(lang);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 0.6rem;
-    min-width: 140px;
+    width: max-content;
+    min-width: 100px; /* Optional: keep a small min-width if desired, or remove */
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     z-index: 1001;
     display: flex;
@@ -170,6 +184,7 @@ const t = getTranslations(lang);
     align-items: center;
     justify-content: center; /* Center text */
     width: 100%;
+    white-space: nowrap; /* Prevent wrapping */
     padding: 0.8rem 1rem;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */

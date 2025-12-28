@@ -56,5 +56,3 @@ export const MARBLE_CONFIG = {
     enable: true,
   },
 } as const;
-
-export const AVATAR_BASE_URL = "https://avatar.awfufu.com/qq/";

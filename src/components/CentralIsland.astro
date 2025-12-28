@@ -45,6 +45,7 @@ const { titleSvg } = Astro.props;
   // Actually, let's keep state here.
   let isLoggedIn = false;
   let currentQQ = "";
+  let currentUser = "";
   let isPolling = false;
 
   // DOM Helpers (Dynamic)
@@ -128,7 +129,21 @@ const { titleSvg } = Astro.props;
   function updateDashboard() {
     const displays = getDisplays();
     if (displays.dashAvatar) {
-      if (currentQQ) {
+      if (currentUser) {
+        displays.dashAvatar.src = `${BACKEND_API_BASE}/user/avatar/${currentUser}`;
+        // Add onerror fallback to QQ or default
+        displays.dashAvatar.onerror = () => {
+          if (currentQQ) {
+            displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
+          } else {
+            displays.dashAvatar.src =
+              "https://ui-avatars.com/api/?name=" +
+              (currentUser || "User") +
+              "&background=random";
+          }
+          displays.dashAvatar.onerror = null; // Prevent infinite loop
+        };
+      } else if (currentQQ) {
         displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
       } else {
         displays.dashAvatar.src =
@@ -139,6 +154,18 @@ const { titleSvg } = Astro.props;
 
   function handleLoginSuccess(token: string, qq: string) {
     localStorage.setItem("token", token);
+
+    // Extract username from token
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.user_id) {
+        currentUser = payload.user_id;
+        localStorage.setItem("username", currentUser);
+      }
+    } catch (e) {
+      console.error("Failed to decode token", e);
+    }
+
     if (qq) {
       localStorage.setItem("qq", String(qq));
       currentQQ = String(qq);
@@ -332,8 +359,10 @@ const { titleSvg } = Astro.props;
   function checkLoginState() {
     const token = localStorage.getItem("token");
     const storedQQ = localStorage.getItem("qq");
+    const storedUser = localStorage.getItem("username");
     isLoggedIn = !!token;
     if (storedQQ) currentQQ = storedQQ;
+    if (storedUser) currentUser = storedUser;
 
     if (isLoggedIn) {
       updateDashboard();

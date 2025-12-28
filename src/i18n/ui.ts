@@ -43,6 +43,7 @@ export const ui = {
 
     // Dashboard
     "dashboard.logged_in": "Logged In",
+    "dashboard.change_avatar": "Change Avatar",
     "dashboard.instruction": "Development in progress...",
 
     // Verification
@@ -98,6 +99,7 @@ export const ui = {
 
     // Dashboard
     "dashboard.logged_in": "已登录",
+    "dashboard.change_avatar": "修改头像",
     "dashboard.instruction": "开发中...",
 
     // Verification
@@ -152,6 +154,7 @@ export const ui = {
 
     // Dashboard
     "dashboard.logged_in": "已登入",
+    "dashboard.change_avatar": "修改頭像",
     "dashboard.instruction": "開發中...",
 
     // Verification
@@ -206,6 +209,7 @@ export const ui = {
 
     // Dashboard
     "dashboard.logged_in": "ログイン中",
+    "dashboard.change_avatar": "アバター変更",
     "dashboard.instruction": "開発中...",
 
     // Verification

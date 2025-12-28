@@ -25,11 +25,110 @@ const t = getTranslations(lang);
   <div class="dashboard-avatar">
     <img id="dashboard-avatar-img" src="" alt="User Avatar">
   </div>
+
+  <input type="file" id="avatar-upload-input" accept="image/*" class="hidden">
+  <button id="btn-change-avatar" class="change-avatar-btn">
+    {t("dashboard.change_avatar")}
+  </button>
+
   <h2>{t("dashboard.logged_in")}</h2>
   <p class="instruction">{t("dashboard.instruction")}</p>
 </div>
 
+<script>
+  import { BACKEND_API_BASE } from "../../config/loginApiBaseUrl";
+
+  document.addEventListener("astro:page-load", () => {
+    const btnChange = document.getElementById("btn-change-avatar");
+    const input = document.getElementById(
+      "avatar-upload-input",
+    ) as HTMLInputElement;
+    const img = document.getElementById(
+      "dashboard-avatar-img",
+    ) as HTMLImageElement;
+
+    if (btnChange && input) {
+      btnChange.addEventListener("click", () => {
+        input.click();
+      });
+
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+
+        // Reset input value so same file can be selected again if needed
+        // but proceed first.
+
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        // Show loading state
+        const originalText = btnChange.textContent;
+        btnChange.textContent = "...";
+        (btnChange as HTMLButtonElement).disabled = true;
+
+        try {
+          const res = await fetch(`${BACKEND_API_BASE}/user/avatar`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          });
+
+          if (res.ok) {
+            // Update image source to force reload
+            if (img) {
+              const currentSrc = img.src.split("?")[0];
+              img.src = `${currentSrc}?t=${Date.now()}`;
+            }
+            // Dispatch event for other components (like navbar) if they listen
+            window.dispatchEvent(new CustomEvent("login-success"));
+          } else {
+            alert("Upload failed");
+          }
+        } catch (e) {
+          console.error("Avatar upload failed", e);
+          alert("Upload failed");
+        } finally {
+          btnChange.textContent = originalText;
+          (btnChange as HTMLButtonElement).disabled = false;
+          input.value = "";
+        }
+      });
+    }
+  });
+</script>
+
 <style>
+  .change-avatar-btn {
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+  }
+
+  .change-avatar-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .change-avatar-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
   .hidden {
     /* biome-ignore lint/complexity/noImportantStyles: utility class */
     display: none !important;
@@ -99,12 +198,12 @@ const t = getTranslations(lang);
     padding-bottom: 3rem;
   }
   .dashboard-avatar {
-    width: 96px;
-    height: 96px;
-    border-radius: 24px;
+    width: 128px;
+    height: 128px;
+    border-radius: 32px;
     overflow: hidden;
     margin-bottom: 1.5rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   }
   .dashboard-avatar img {

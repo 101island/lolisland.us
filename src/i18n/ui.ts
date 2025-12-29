@@ -62,7 +62,11 @@ export const ui = {
     "settings.motion": "Motion",
     "settings.orientation": "Orientation",
     "settings.background": "Background",
+    "common.cancel": "Cancel",
+    "common.confirm": "Confirm",
     "user.logout": "Logout",
+    "common.loading": "Loading...",
+    "common.processing": "Processing...",
   },
   "zh-cn": {
     "site.title": "Lolisland",
@@ -118,6 +122,10 @@ export const ui = {
     "settings.orientation": "方向感应",
     "settings.background": "背景",
     "user.logout": "退出登录",
+    "common.cancel": "取消",
+    "common.confirm": "确认",
+    "common.loading": "加载中...",
+    "common.processing": "处理中...",
   },
   "zh-hk": {
     "site.title": "Lolisland",
@@ -173,6 +181,10 @@ export const ui = {
     "settings.orientation": "方向感應",
     "settings.background": "背景",
     "user.logout": "登出",
+    "common.cancel": "取消",
+    "common.confirm": "確認",
+    "common.loading": "載入中...",
+    "common.processing": "處理中...",
   },
   ja: {
     "site.title": "Lolisland",
@@ -229,5 +241,9 @@ export const ui = {
     "settings.orientation": "オリエンテーション",
     "settings.background": "背景",
     "user.logout": "ログアウト",
+    "common.cancel": "キャンセル",
+    "common.confirm": "確認",
+    "common.loading": "読み込み中...",
+    "common.processing": "処理中...",
   },
 } as const;

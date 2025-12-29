@@ -80,11 +80,17 @@ const t = getTranslations(lang);
           });
 
           if (res.ok) {
-            // Update image source to force reload
-            if (img) {
-              const currentSrc = img.src.split("?")[0];
-              img.src = `${currentSrc}?t=${Date.now()}`;
+            const { key } = (await res.json()) as { key: string };
+
+            if (key) {
+              localStorage.setItem("avatar", key);
+
+              // Update image source directly with new hash
+              if (img) {
+                img.src = `${BACKEND_API_BASE}/user/avatar/${key}`;
+              }
             }
+
             // Dispatch event for other components (like navbar) if they listen
             window.dispatchEvent(new CustomEvent("login-success"));
           } else {

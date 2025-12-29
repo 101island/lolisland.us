@@ -20,15 +20,48 @@ import Particles from "./Particles.astro";
 </div>
 
 <script>
+  import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
   import { fetchUsers } from "../data/users";
   import { MarbleSystem } from "../utils/marbleSystem";
 
   declare global {
     interface Window {
       hasInitializedMarbleSystem: boolean;
-      marbleSystemInstance: unknown;
+      marbleSystemInstance: MarbleSystem; // Better typing if possible, or keep unknown and cast
     }
   }
+
+  // Marble Update Listener
+  window.addEventListener("login-success", () => {
+    const sys = window.marbleSystemInstance;
+    if (!sys) return;
+
+    const currentUsername = localStorage.getItem("username");
+    const newAvatar = localStorage.getItem("avatar");
+
+    if (currentUsername && newAvatar && /^[0-9a-f]{16}$/.test(newAvatar)) {
+      // Find marble by label (username)
+      // We have to access private marbles or use getMarbles() if available
+      // MarbleSystem has getMarbles() returning ReadonlyArray<Marble>
+      const marbles = sys.getMarbles();
+      const userMarble = marbles.find((m) => {
+        // We need to find the label element text
+        const label = m.node.querySelector(".marble-label");
+        return label && label.textContent === currentUsername;
+      });
+
+      if (userMarble) {
+        const innerMarble = userMarble.node.querySelector(
+          ".marble",
+        ) as HTMLElement;
+        if (innerMarble) {
+          innerMarble.style.backgroundImage = `url("${BACKEND_API_BASE}/user/avatar/${newAvatar}")`;
+          // Also update the id if the system relies on it for something else
+          userMarble.id = newAvatar;
+        }
+      }
+    }
+  });
 
   // Prevent re-initialization on View Transitions
   if (!window.hasInitializedMarbleSystem) {

@@ -248,20 +248,14 @@ const t = getTranslations(lang);
 
       btnConfirm.addEventListener("click", () => {
         if (!cropper) return;
-        const canvas = cropper.getCroppedCanvas({
+        // biome-ignore lint/suspicious/noExplicitAny: Missing type definition for getCroppedCanvas
+        const canvas = (cropper as any).getCroppedCanvas({
           width: 640,
           height: 640,
           imageSmoothingQuality: "high",
         });
 
         if (!canvas) return;
-
-        // Show processing immediately before compression loop starts
-        // But compression loop is synchronous in JS (except toBlob which is callback based).
-        // Let's wrap compression in a small timeout too or just rely on async nature of toBlob?
-        // Canvas operations are sync. We should show loading before starting canvas ops.
-        // It's safer to show loading then setTimeout.
-
         showLoading(processingText);
 
         setTimeout(() => {
@@ -419,7 +413,7 @@ const t = getTranslations(lang);
     height: 128px;
     border-radius: 32px;
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    margin: 0 auto 1.5rem auto;
     border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   }

@@ -161,6 +161,19 @@ const currentLabel = languages[lang as keyof typeof languages] || lang;
     opacity: 0.7;
   }
 
+  .item-flag {
+    font-size: 1.2rem;
+    border-radius: 2px;
+    display: block;
+  }
+
+  .item-text {
+    font-weight: 500;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
   .menu-item.loading {
     justify-content: center;
   }
@@ -238,18 +251,5 @@ const currentLabel = languages[lang as keyof typeof languages] || lang;
     );
     color: #7cfbff;
     border: 1px solid rgba(124, 251, 255, 0.2);
-  }
-
-  .item-flag {
-    font-size: 1.2rem;
-    border-radius: 2px;
-    display: block;
-  }
-
-  .item-text {
-    font-weight: 500;
-    font-size: 0.95rem;
-    white-space: nowrap;
-    line-height: 1;
   }
 </style>

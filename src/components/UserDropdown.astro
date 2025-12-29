@@ -41,31 +41,43 @@ const t = getTranslations(lang);
 
     async function updateAvatar() {
       let qq = localStorage.getItem("qq");
+      let avatar = localStorage.getItem("avatar");
       const token = localStorage.getItem("token");
 
       if (token) {
-        if (!qq) {
-          try {
-            // Fetch user info from backend if token exists but QQ is missing
-            const res = await fetch(`${BACKEND_API_BASE}/me`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.qq) {
-                qq = String(data.qq);
-                localStorage.setItem("qq", qq);
-              }
+        // Sync user info
+        try {
+          // Fetch user info from backend if token exists
+          const res = await fetch(`${BACKEND_API_BASE}/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = (await res.json()) as {
+              qq?: string;
+              avatar?: string;
+            };
+            if (data.qq) {
+              qq = String(data.qq);
+              localStorage.setItem("qq", qq);
             }
-          } catch (e) {
-            console.error("Failed to fetch user info", e);
+            if (data.avatar) {
+              avatar = String(data.avatar);
+              localStorage.setItem("avatar", avatar);
+            }
           }
+        } catch (e) {
+          console.error("Failed to fetch user info", e);
         }
 
-        if (qq) {
-          avatarImg.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${qq}&spec=640&img_type=jpg`;
+        if (avatar && /^[0-9a-f]{16}$/.test(avatar)) {
+          avatarImg.src = `${BACKEND_API_BASE}/user/avatar/${avatar}`;
+          avatarImg.onerror = () => {
+            avatarImg.src =
+              "https://ui-avatars.com/api/?name=User&background=random";
+            avatarImg.onerror = null;
+          };
         } else {
-          // Default avatar or placeholder if QQ is missing and fetch failed
+          // Default avatar or placeholder
           avatarImg.src =
             "https://ui-avatars.com/api/?name=User&background=random";
         }
@@ -101,6 +113,7 @@ const t = getTranslations(lang);
       logoutBtn.addEventListener("click", () => {
         localStorage.removeItem("token");
         localStorage.removeItem("qq");
+        localStorage.removeItem("avatar");
         userDropdown.classList.add("hidden");
         dropdownMenu.classList.remove("active");
         // Notify other components if necessary, e.g. show login button again

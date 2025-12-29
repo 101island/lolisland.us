@@ -11,12 +11,12 @@ const { titleSvg } = Astro.props;
 ---
 
 <div class="island-container">
-  <TitleCard titleSvg={titleSvg} />
-  <LoginView />
-  <QQAuthView />
-  <VerificationView />
-  <RegisterView />
-  <DashboardView />
+  <TitleCard titleSvg={titleSvg}/>
+  <LoginView/>
+  <QQAuthView/>
+  <VerificationView/>
+  <RegisterView/>
+  <DashboardView/>
 </div>
 
 <script>
@@ -45,6 +45,7 @@ const { titleSvg } = Astro.props;
   // Actually, let's keep state here.
   let isLoggedIn = false;
   let currentQQ = "";
+  let currentAvatar = "";
   let currentUser = "";
   let isPolling = false;
 
@@ -129,30 +130,27 @@ const { titleSvg } = Astro.props;
   function updateDashboard() {
     const displays = getDisplays();
     if (displays.dashAvatar) {
-      if (currentUser) {
-        displays.dashAvatar.src = `${BACKEND_API_BASE}/user/avatar/${currentUser}`;
-        // Add onerror fallback to QQ or default
+      if (currentAvatar && /^[0-9a-f]{16}$/.test(currentAvatar)) {
+        displays.dashAvatar.src = `${BACKEND_API_BASE}/user/avatar/${currentAvatar}`;
         displays.dashAvatar.onerror = () => {
-          if (currentQQ) {
-            displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
-          } else {
-            displays.dashAvatar.src =
-              "https://ui-avatars.com/api/?name=" +
-              (currentUser || "User") +
-              "&background=random";
-          }
-          displays.dashAvatar.onerror = null; // Prevent infinite loop
+          // Fallback to UI Avatars if hash fails (shouldn't happen if valid, but maybe network error)
+          displays.dashAvatar.src =
+            "https://ui-avatars.com/api/?name=" +
+            (currentUser || "User") +
+            "&background=random";
+          displays.dashAvatar.onerror = null;
         };
-      } else if (currentQQ) {
-        displays.dashAvatar.src = `https://q.qlogo.cn/headimg_dl?dst_uin=${currentQQ}&spec=640&img_type=jpg`;
       } else {
+        // Fallback or default
         displays.dashAvatar.src =
-          "https://ui-avatars.com/api/?name=User&background=random";
+          "https://ui-avatars.com/api/?name=" +
+          (currentUser || "User") +
+          "&background=random";
       }
     }
   }
 
-  function handleLoginSuccess(token: string, qq: string) {
+  function handleLoginSuccess(token: string, qq: string, avatar: string) {
     localStorage.setItem("token", token);
 
     // Extract username from token
@@ -170,6 +168,11 @@ const { titleSvg } = Astro.props;
       localStorage.setItem("qq", String(qq));
       currentQQ = String(qq);
     }
+    if (avatar) {
+      localStorage.setItem("avatar", String(avatar));
+      currentAvatar = String(avatar);
+    }
+
     isLoggedIn = true;
     updateDashboard();
     window.dispatchEvent(new CustomEvent("login-success"));
@@ -221,10 +224,11 @@ const { titleSvg } = Astro.props;
       const data = (await res.json()) as {
         token?: string;
         qq?: string;
+        avatar?: string;
         error?: string;
       };
       if (data.token) {
-        handleLoginSuccess(data.token, data.qq || "");
+        handleLoginSuccess(data.token, data.qq || "", data.avatar || "");
         if (inputs.loginUser) inputs.loginUser.value = "";
         if (inputs.loginPass) inputs.loginPass.value = "";
       } else {
@@ -292,6 +296,7 @@ const { titleSvg } = Astro.props;
           status: string;
           token: string;
           qq: string;
+          avatar: string;
         };
 
         if (data.status === "verified") {
@@ -299,7 +304,7 @@ const { titleSvg } = Astro.props;
           switchView("register");
         } else if (data.status === "authenticated") {
           isPolling = false;
-          handleLoginSuccess(data.token, data.qq);
+          handleLoginSuccess(data.token, data.qq, data.avatar || "");
         } else {
           // Status pending or other, retry immediately
           if (isPolling) poll();
@@ -351,9 +356,14 @@ const { titleSvg } = Astro.props;
         const loginData = (await loginRes.json()) as {
           token?: string;
           qq?: string;
+          avatar?: string;
         };
         if (loginData.token) {
-          handleLoginSuccess(loginData.token!, loginData.qq || "");
+          handleLoginSuccess(
+            loginData.token || "",
+            loginData.qq || "",
+            loginData.avatar || "",
+          );
         } else {
           switchView("login");
         }
@@ -371,9 +381,39 @@ const { titleSvg } = Astro.props;
     const token = localStorage.getItem("token");
     const storedQQ = localStorage.getItem("qq");
     const storedUser = localStorage.getItem("username");
+    const storedAvatar = localStorage.getItem("avatar");
     isLoggedIn = !!token;
     if (storedQQ) currentQQ = storedQQ;
     if (storedUser) currentUser = storedUser;
+    if (storedAvatar) currentAvatar = storedAvatar;
+
+    if (isLoggedIn) {
+      // Sync user info to ensure local cache is up to date
+      fetch(`${BACKEND_API_BASE}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json() as Promise<{ avatar?: string; qq?: string }>)
+        .then((data) => {
+          let needsUpdate = false;
+          if (data.avatar && data.avatar !== currentAvatar) {
+            currentAvatar = data.avatar;
+            localStorage.setItem("avatar", currentAvatar);
+            needsUpdate = true;
+          }
+          if (data.qq && data.qq !== currentQQ) {
+            currentQQ = data.qq;
+            localStorage.setItem("qq", currentQQ);
+            // Sync updated QQ if changed
+            currentQQ = data.qq;
+            localStorage.setItem("qq", currentQQ);
+            needsUpdate = true;
+          }
+          if (needsUpdate) {
+            updateDashboard();
+          }
+        })
+        .catch(console.error);
+    }
 
     if (isLoggedIn) {
       updateDashboard();
@@ -407,6 +447,8 @@ const { titleSvg } = Astro.props;
       isLoggedIn = !!token;
       const storedQQ = localStorage.getItem("qq");
       if (storedQQ) currentQQ = storedQQ;
+      const storedAvatar = localStorage.getItem("avatar");
+      if (storedAvatar) currentAvatar = storedAvatar;
       updateDashboard();
       if (isLoggedIn) switchView("dashboard");
     });
@@ -416,6 +458,8 @@ const { titleSvg } = Astro.props;
       currentQQ = "";
       localStorage.removeItem("token");
       localStorage.removeItem("qq");
+      localStorage.removeItem("avatar");
+      currentAvatar = "";
       switchView("title");
     });
   }

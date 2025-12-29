@@ -11,17 +11,17 @@ const { titleSvg } = Astro.props;
 ---
 
 <div class="island-container">
-  <TitleCard titleSvg={titleSvg}/>
-  <LoginView/>
-  <QQAuthView/>
-  <VerificationView/>
-  <RegisterView/>
-  <DashboardView/>
+  <TitleCard titleSvg={titleSvg} />
+  <LoginView />
+  <QQAuthView />
+  <VerificationView />
+  <RegisterView />
+  <DashboardView />
 </div>
 
 <script>
   import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
-  import { defaultLang, languages, ui } from "../i18n/ui";
+  import { defaultLang, ui } from "../i18n/ui";
 
   // Helpers that don't depend on DOM immediately
   const getT = () => {
@@ -218,9 +218,13 @@ const { titleSvg } = Astro.props;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: u, password: p }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as {
+        token?: string;
+        qq?: string;
+        error?: string;
+      };
       if (data.token) {
-        handleLoginSuccess(data.token, data.qq);
+        handleLoginSuccess(data.token, data.qq || "");
         if (inputs.loginUser) inputs.loginUser.value = "";
         if (inputs.loginPass) inputs.loginPass.value = "";
       } else {
@@ -254,7 +258,7 @@ const { titleSvg } = Astro.props;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qq }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { code?: string; error?: string };
       if (data.code) {
         if (displays.verifyCode)
           displays.verifyCode.textContent = `/login ${data.code}`;
@@ -284,7 +288,11 @@ const { titleSvg } = Astro.props;
 
         if (!isPolling) return; // Check again after await
 
-        const data = await res.json();
+        const data = (await res.json()) as {
+          status: string;
+          token: string;
+          qq: string;
+        };
 
         if (data.status === "verified") {
           isPolling = false;
@@ -333,16 +341,19 @@ const { titleSvg } = Astro.props;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: u, password: p, qq: currentQQ }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: string };
       if (res.ok) {
         const loginRes = await fetch(`${BACKEND_API_BASE}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: u, password: p }),
         });
-        const loginData = await loginRes.json();
+        const loginData = (await loginRes.json()) as {
+          token?: string;
+          qq?: string;
+        };
         if (loginData.token) {
-          handleLoginSuccess(loginData.token, loginData.qq);
+          handleLoginSuccess(loginData.token!, loginData.qq || "");
         } else {
           switchView("login");
         }

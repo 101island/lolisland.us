@@ -22,14 +22,323 @@ const t = getTranslations(lang);
       <line x1="6" y1="6" x2="18" y2="18"></line>
     </svg>
   </button>
-  <div class="dashboard-avatar">
-    <img id="dashboard-avatar-img" src="" alt="User Avatar">
+
+  <div id="dashboard-content">
+    <div class="dashboard-avatar">
+      <img id="dashboard-avatar-img" src="" alt="User Avatar">
+    </div>
+
+    <input type="file" id="avatar-upload-input" accept="image/*" class="hidden">
+    <button id="btn-change-avatar" class="change-avatar-btn">
+      {t("dashboard.change_avatar")}
+    </button>
+
+    <h2>{t("dashboard.logged_in")}</h2>
+    <p class="instruction">{t("dashboard.instruction")}</p>
   </div>
-  <h2>{t("dashboard.logged_in")}</h2>
-  <p class="instruction">{t("dashboard.instruction")}</p>
+
+  <!-- Cropper View (Replaces content) -->
+  <div id="cropper-view" class="hidden">
+    <div class="cropper-container">
+      <img id="cropper-image" src="" alt="Crop Preview">
+    </div>
+    <div class="cropper-actions">
+      <button id="btn-cancel-crop" class="secondary-btn">
+        {t("common.cancel")}
+      </button>
+      <button
+        id="btn-confirm-crop"
+        class="primary-btn"
+        data-text={t("common.confirm")}
+      >
+        {t("common.confirm")}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading View -->
+  <div id="loading-view" class="hidden loading-view">
+    <h2 id="loading-title">{t("common.loading")}</h2>
+    <div class="spinner"></div>
+  </div>
 </div>
 
+<script>
+  import Cropper from "cropperjs";
+  import { BACKEND_API_BASE } from "../../config/loginApiBaseUrl";
+  import "cropperjs/dist/cropper.css";
+
+  document.addEventListener("astro:page-load", () => {
+    const btnChange = document.getElementById("btn-change-avatar");
+    const input = document.getElementById(
+      "avatar-upload-input",
+    ) as HTMLInputElement;
+    const img = document.getElementById(
+      "dashboard-avatar-img",
+    ) as HTMLImageElement;
+
+    // View Containers
+    const dashboardContent = document.getElementById("dashboard-content");
+    const cropperView = document.getElementById("cropper-view");
+    const loadingView = document.getElementById("loading-view");
+    const loadingTitle = document.getElementById("loading-title");
+
+    // Cropper Elements
+    const cropperImage = document.getElementById(
+      "cropper-image",
+    ) as HTMLImageElement;
+    const btnCancel = document.getElementById("btn-cancel-crop");
+    const btnConfirm = document.getElementById("btn-confirm-crop");
+
+    // Translations
+    const loadingText =
+      document.documentElement.lang === "zh-cn"
+        ? "加载中..."
+        : document.documentElement.lang === "zh-hk"
+          ? "載入中..."
+          : document.documentElement.lang === "ja"
+            ? "読み込み中..."
+            : "Loading...";
+
+    const processingText =
+      document.documentElement.lang === "zh-cn"
+        ? "处理中..."
+        : document.documentElement.lang === "zh-hk"
+          ? "處理中..."
+          : document.documentElement.lang === "ja"
+            ? "処理中..."
+            : "Processing...";
+
+    let cropper: Cropper | null = null;
+
+    if (
+      btnChange &&
+      input &&
+      dashboardContent &&
+      cropperView &&
+      loadingView &&
+      loadingTitle &&
+      cropperImage &&
+      btnCancel &&
+      btnConfirm
+    ) {
+      btnChange.addEventListener("click", () => {
+        input.click();
+      });
+
+      const showLoading = (title: string) => {
+        if (loadingTitle) loadingTitle.textContent = title;
+        loadingView.classList.remove("hidden");
+        dashboardContent.classList.add("hidden");
+        cropperView.classList.add("hidden");
+      };
+
+      input.addEventListener("change", () => {
+        const file = input.files?.[0];
+        if (!file) return;
+
+        // Async Loading for large files
+        showLoading(loadingText);
+
+        // Use setTimeout to allow UI to render loading state
+        setTimeout(() => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (e.target?.result) {
+              loadingView.classList.add("hidden");
+              cropperView.classList.remove("hidden");
+
+              // Reset button state
+              const originalText = btnConfirm.getAttribute("data-text");
+              if (originalText) btnConfirm.textContent = originalText;
+              (btnConfirm as HTMLButtonElement).disabled = false;
+
+              // Load image first to calculate dimensions
+              cropperImage.onload = () => {
+                const containerWidth =
+                  (document.querySelector(".cropper-container") as HTMLElement)
+                    ?.offsetWidth || 640;
+
+                if (cropperImage.naturalHeight > 0) {
+                  const aspect =
+                    cropperImage.naturalWidth / cropperImage.naturalHeight;
+                  let targetHeight = containerWidth / aspect;
+                  const maxHeight = window.innerHeight * 0.6; // Max 60vh
+
+                  if (targetHeight > maxHeight) targetHeight = maxHeight;
+                  if (targetHeight < 200) targetHeight = 200; // Min height
+
+                  const container = document.querySelector(
+                    ".cropper-container",
+                  ) as HTMLElement;
+                  if (container) {
+                    container.style.height = `${targetHeight}px`;
+                  }
+                }
+
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(cropperImage, {
+                  aspectRatio: 1,
+                  viewMode: 1,
+                  dragMode: "move",
+                  autoCropArea: 1,
+                  background: false, // Transparent background for PNGs
+                  checkOrientation: false,
+                });
+              };
+              cropperImage.src = e.target.result as string;
+            }
+          };
+          reader.readAsDataURL(file);
+        }, 100);
+      });
+
+      const closeCropper = () => {
+        loadingView.classList.add("hidden");
+        cropperView.classList.add("hidden");
+        dashboardContent.classList.remove("hidden");
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+        input.value = ""; // Reset input
+      };
+
+      btnCancel.addEventListener("click", closeCropper);
+
+      const compressAndUpload = async (blob: Blob) => {
+        showLoading(processingText);
+
+        const token = localStorage.getItem("token");
+        if (!token) return; // Should handle error
+
+        const formData = new FormData();
+        formData.append("avatar", blob, "avatar.webp");
+
+        try {
+          const res = await fetch(`${BACKEND_API_BASE}/user/avatar`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+
+          if (res.ok) {
+            const { key } = (await res.json()) as { key: string };
+            if (key) {
+              localStorage.setItem("avatar", key);
+              if (img) img.src = `${BACKEND_API_BASE}/user/avatar/${key}`;
+            }
+            window.dispatchEvent(new CustomEvent("login-success"));
+            closeCropper();
+          } else {
+            alert("Upload failed");
+            // Return to cropper view on failure
+            loadingView.classList.add("hidden");
+            cropperView.classList.remove("hidden");
+            (btnConfirm as HTMLButtonElement).disabled = false;
+          }
+        } catch (e) {
+          console.error("Upload failed", e);
+          alert("Upload failed");
+          loadingView.classList.add("hidden");
+          cropperView.classList.remove("hidden");
+          (btnConfirm as HTMLButtonElement).disabled = false;
+        }
+      };
+
+      btnConfirm.addEventListener("click", () => {
+        if (!cropper) return;
+        // biome-ignore lint/suspicious/noExplicitAny: Missing type definition for getCroppedCanvas
+        const canvas = (cropper as any).getCroppedCanvas({
+          width: 640,
+          height: 640,
+          imageSmoothingQuality: "high",
+        });
+
+        if (!canvas) return;
+        showLoading(processingText);
+
+        setTimeout(() => {
+          // Compression loop
+          let quality = 0.8;
+          const maxBytes = 100 * 1024; // 100KiB
+
+          const tryCompress = (q: number) => {
+            canvas.toBlob(
+              (blob: Blob | null) => {
+                if (!blob) return;
+                if (blob.size > maxBytes && q > 0.1) {
+                  // Try lower quality
+                  tryCompress(q - 0.1);
+                } else {
+                  // Good enough or min quality reached
+                  compressAndUpload(blob);
+                }
+              },
+              "image/webp",
+              q,
+            );
+          };
+
+          tryCompress(quality);
+        }, 50);
+      });
+    }
+  });
+</script>
+
 <style>
+  /* Loading View */
+  .loading-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    margin-top: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Existing Styles */
+  .change-avatar-btn {
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+  }
+
+  .change-avatar-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .change-avatar-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
   .hidden {
     /* biome-ignore lint/complexity/noImportantStyles: utility class */
     display: none !important;
@@ -71,6 +380,7 @@ const t = getTranslations(lang);
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 60; /* Higher z-index to stay above cropper if needed */
   }
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -99,12 +409,12 @@ const t = getTranslations(lang);
     padding-bottom: 3rem;
   }
   .dashboard-avatar {
-    width: 96px;
-    height: 96px;
-    border-radius: 24px;
+    width: 128px;
+    height: 128px;
+    border-radius: 32px;
     overflow: hidden;
-    margin-bottom: 1.5rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    margin: 0 auto 1.5rem auto;
+    border: 3px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   }
   .dashboard-avatar img {
@@ -125,5 +435,70 @@ const t = getTranslations(lang);
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Cropper View Styles */
+  #cropper-view {
+    /* Replaces content, so standard flow */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content */
+  }
+
+  .cropper-container {
+    width: 100%;
+    /* Height is set dynamically by JS */
+    /* background: #000; Removed to prevent black bars */
+    overflow: hidden;
+    margin-bottom: 1rem;
+    background: transparent;
+  }
+
+  /* Limit image max size to container */
+  #cropper-image {
+    display: block;
+    max-width: 100%;
+  }
+
+  .cropper-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center; /* Center buttons */
+    width: 100%;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .primary-btn {
+    background: #fff;
+    color: #000;
+  }
+
+  .primary-btn:hover {
+    background: #e0e0e0;
+  }
+
+  .primary-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .secondary-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+  }
+
+  .secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
   }
 </style>

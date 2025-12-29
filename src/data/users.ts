@@ -1,8 +1,9 @@
 // User data: Fetch user list from API and store
 
+import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
 import type { UserEntry } from "../config/marbleConfig";
 
-export const USER_DATA_API = "https://avatar.awfufu.com/users";
+export const USER_DATA_API = `${BACKEND_API_BASE}/users`;
 
 // Fetch user data from API
 export async function fetchUsers(): Promise<UserEntry[]> {

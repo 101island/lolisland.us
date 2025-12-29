@@ -1,7 +1,8 @@
 // Marble factory: Responsible for creating and initializing marble instances
 
+import { BACKEND_API_BASE } from "../config/loginApiBaseUrl";
 import type { UserEntry } from "../config/marbleConfig";
-import { AVATAR_BASE_URL, MARBLE_CONFIG } from "../config/marbleConfig";
+import { MARBLE_CONFIG } from "../config/marbleConfig";
 import type { Marble } from "./mouseInteraction";
 
 export class MarbleFactory {
@@ -28,7 +29,7 @@ export class MarbleFactory {
 
   // Generate avatar URL
   private getAvatarUrl(id: string): string {
-    return `${AVATAR_BASE_URL}${id}`;
+    return `${BACKEND_API_BASE}/user/avatar/${id}`;
   }
 
   // Create marble DOM node wrapper
@@ -94,7 +95,7 @@ export class MarbleFactory {
 
     try {
       await img.decode();
-    } catch (e) {
+    } catch (_e) {
       throw new Error(`Failed to load image: ${url}`);
     }
 
@@ -104,8 +105,9 @@ export class MarbleFactory {
     const physics = this.generateRandomPhysics(radius);
 
     // Pre-set position to avoid flashing at 0,0
-    wrapper.style.transform = `translate(${physics.x - radius}px, ${physics.y - radius
-      }px)`;
+    wrapper.style.transform = `translate(${physics.x - radius}px, ${
+      physics.y - radius
+    }px)`;
 
     const { massScale, massOffset } = MARBLE_CONFIG.physics;
     const marble: Marble = {

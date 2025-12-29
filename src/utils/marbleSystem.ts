@@ -139,9 +139,26 @@ export class MarbleSystem {
   }
 
   private currentSubSteps: number = 1;
+  private currentZoomLevel: number = 1.0;
+  private targetZoomLevel: number = 1.0;
+
+  // Set target zoom level
+  public setZoom(level: number): void {
+    // Clamp constraints
+    this.targetZoomLevel = Math.max(0.2, Math.min(level, 3.0));
+  }
 
   // Per-frame update logic
   private update(dt: number): void {
+    // 1. Handle Smooth Zoom
+    if (Math.abs(this.targetZoomLevel - this.currentZoomLevel) > 0.001) {
+      // Lerp factor (adjust for speed)
+      const t = 1.0 - 0.1 ** dt; // Framerate independent lerp
+      this.currentZoomLevel +=
+        (this.targetZoomLevel - this.currentZoomLevel) * t;
+      this.updateMarbleSize(this.currentZoomLevel);
+    }
+
     let subSteps = 1;
 
     if (

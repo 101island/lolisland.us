@@ -39,6 +39,7 @@ const t = getTranslations(lang);
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
       </button>
+      <span id="zoom-level">1.0x</span>
     </div>
 
     <div class="separator"></div>
@@ -325,6 +326,16 @@ const t = getTranslations(lang);
     display: flex;
     flex-direction: row;
     gap: 0.8rem;
+    align-items: center; /* Center label vertically */
+  }
+
+  #zoom-level {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-width: 3.5ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums; /* Fixed width numbers to prevent jitter */
   }
 
   /* Button Styles (Shared) */

@@ -6,17 +6,17 @@ import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
 
-<Navbar />
+<Navbar/>
 <div class="particles-container" transition:persist>
-  <Particles />
+  <Particles/>
 </div>
 <div class="halo" transition:persist></div>
 <div class="grain" transition:persist></div>
 <div id="marble-field" transition:persist></div>
-<Footer />
+<Footer/>
 
 <div class="content">
-  <CentralIsland titleSvg={titleSvg} />
+  <CentralIsland titleSvg={titleSvg}/>
 </div>
 
 <script>
@@ -242,20 +242,29 @@ import Particles from "./Particles.astro";
   // Re-attach Zoom Controls
   const zoomInBtn = document.getElementById("zoom-in");
   const zoomOutBtn = document.getElementById("zoom-out");
+  const zoomLabel = document.getElementById("zoom-level");
   const sys = window.marbleSystemInstance;
   let currentZoom = 1.0;
+
+  const updateZoomLabel = () => {
+    if (zoomLabel) {
+      zoomLabel.textContent = `${currentZoom.toFixed(1)}x`;
+    }
+  };
 
   if (sys) {
     if (zoomInBtn) {
       zoomInBtn.addEventListener("click", () => {
         currentZoom = Math.min(currentZoom + 0.1, 2.0);
-        sys.updateMarbleSize(currentZoom);
+        sys.setZoom(currentZoom);
+        updateZoomLabel();
       });
     }
     if (zoomOutBtn) {
       zoomOutBtn.addEventListener("click", () => {
         currentZoom = Math.max(currentZoom - 0.1, 0.5);
-        sys.updateMarbleSize(currentZoom);
+        sys.setZoom(currentZoom);
+        updateZoomLabel();
       });
     }
   }
@@ -368,10 +377,7 @@ import Particles from "./Particles.astro";
   :global(.marble-wrapper) {
     position: absolute;
     will-change: transform, width, height;
-    transition:
-      opacity 1s ease,
-      width 0.3s ease,
-      height 0.3s ease;
+    transition: opacity 1s ease;
   }
 
   :global(.marble-wrapper:hover) {

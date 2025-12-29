@@ -251,6 +251,13 @@ const t = getTranslations(lang);
       });
     }
 
+    // Initial State Check
+    const state = window._centralIslandState;
+    if (state && state.currentView !== "title" && toggles.title) {
+      toggles.title.disabled = true;
+      toggles.title.parentElement?.classList.add("disabled");
+    }
+
     // Update global reference to fresh DOM elements. Global listeners (defined below) use this to access current toggles without accumulating duplicate handlers.
     window._settingsToggles = toggles;
   });
@@ -258,37 +265,21 @@ const t = getTranslations(lang);
   // Defines global listeners ONCE
   if (!window._settingsListenersAttached) {
     window._settingsListenersAttached = true;
-    let titlePrevState = true;
 
-    window.addEventListener("open-login", () => {
+    // Listen for view changes to disable/enable Title toggle
+    window.addEventListener("view-change", ((e: CustomEvent) => {
       const toggles = window._settingsToggles;
       if (toggles?.title) {
-        titlePrevState = toggles.title.checked;
-        toggles.title.checked = false;
-        toggles.title.disabled = true;
+        const isTitleView = e.detail.view === "title";
+        toggles.title.disabled = !isTitleView;
 
         const parent = toggles.title.parentElement;
-        if (parent) parent.classList.add("disabled");
+        if (parent) {
+          if (isTitleView) parent.classList.remove("disabled");
+          else parent.classList.add("disabled");
+        }
       }
-    });
-
-    window.addEventListener("close-login", () => {
-      const toggles = window._settingsToggles;
-      if (toggles?.title) {
-        toggles.title.disabled = false;
-        const parent = toggles.title.parentElement;
-        if (parent) parent.classList.remove("disabled");
-
-        toggles.title.checked = titlePrevState;
-
-        // Use helper? We don't have access to 'emit'. define it or use dispatch.
-        window.dispatchEvent(
-          new CustomEvent("toggle-title", {
-            detail: { enabled: titlePrevState },
-          }),
-        );
-      }
-    });
+    }) as EventListener);
   }
 </script>
 

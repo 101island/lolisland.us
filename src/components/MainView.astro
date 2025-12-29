@@ -6,17 +6,17 @@ import Navbar from "./Navbar.astro";
 import Particles from "./Particles.astro";
 ---
 
-<Navbar/>
+<Navbar />
 <div class="particles-container" transition:persist>
-  <Particles/>
+  <Particles />
 </div>
 <div class="halo" transition:persist></div>
 <div class="grain" transition:persist></div>
 <div id="marble-field" transition:persist></div>
-<Footer/>
+<Footer />
 
 <div class="content">
-  <CentralIsland titleSvg={titleSvg}/>
+  <CentralIsland titleSvg={titleSvg} />
 </div>
 
 <script>
@@ -40,9 +40,7 @@ import Particles from "./Particles.astro";
     const newAvatar = localStorage.getItem("avatar");
 
     if (currentUsername && newAvatar && /^[0-9a-f]{16}$/.test(newAvatar)) {
-      // Find marble by label (username)
-      // We have to access private marbles or use getMarbles() if available
-      // MarbleSystem has getMarbles() returning ReadonlyArray<Marble>
+      // Find marble by label (username) using getMarbles()
       const marbles = sys.getMarbles();
       const userMarble = marbles.find((m) => {
         // We need to find the label element text
@@ -80,17 +78,17 @@ import Particles from "./Particles.astro";
     if (field) {
       let zoomLevel = 1.0;
 
-      // 初始化弹珠系统
+      // Initialize marble system
       const marbleSystem = new MarbleSystem({
         container: field,
         fieldWidth: window.innerWidth,
         fieldHeight: window.innerHeight,
       });
 
-      // 启动动画循环
+      // Start animation loop
       marbleSystem.start();
 
-      // 获取并添加用户弹珠
+      // Fetch and add user marbles
       fetchUsers()
         .then((users) => {
           marbleSystem.addMarbles(users);
@@ -143,7 +141,7 @@ import Particles from "./Particles.astro";
         updateDebug();
       }
 
-      // 缩放功能 - Button Logic handled outside to support re-rendering
+      // Zoom function - Button Logic handled outside to support re-rendering
 
       // Toggle Collisions
       window.addEventListener("toggle-collision", ((e: CustomEvent) => {
@@ -168,10 +166,20 @@ import Particles from "./Particles.astro";
       }) as EventListener);
 
       // Toggle Title
-      let titleTimeout: number;
-      window.addEventListener("toggle-title", ((
-        _e: CustomEvent,
-      ) => {}) as EventListener);
+      window.addEventListener("toggle-title", ((e: CustomEvent) => {
+        const titleView = document.getElementById("view-title");
+        if (titleView) {
+          console.log("Toggle Title:", e.detail.enabled);
+          if (e.detail.enabled) {
+            // Restore visibility if enabled, otherwise force hide using display: none
+            titleView.style.display = "";
+            titleView.style.opacity = "1"; // Ensure opacity is restored if we messed with it
+            titleView.style.pointerEvents = "auto";
+          } else {
+            titleView.style.display = "none";
+          }
+        }
+      }) as EventListener);
 
       // Toggle Marbles
       let marbleTimeout: number;
@@ -235,23 +243,19 @@ import Particles from "./Particles.astro";
   const zoomInBtn = document.getElementById("zoom-in");
   const zoomOutBtn = document.getElementById("zoom-out");
   const sys = window.marbleSystemInstance;
+  let currentZoom = 1.0;
 
   if (sys) {
     if (zoomInBtn) {
       zoomInBtn.addEventListener("click", () => {
-        // Since we can't easily access the closure variable 'zoomLevel' here without exposing it,
-        // for now we trust the system or would need to refactor. The user just wants persistence.
-        // Re-implementing basic zoom logic using the system instance if possible?
-        // Actually, let's just use a hardcoded small step, relying on internal state if we exposed it.
-        // But MarbleSystem probably doesn't expose current zoom.
-        // It's acceptable to skip deep logic here for the 'persist' fix unless user complains about zoom breaking after Nav.
-        // Let's at least prevent errors.
-        console.log("Zoom In (Navigation Persist)");
+        currentZoom = Math.min(currentZoom + 0.1, 2.0);
+        sys.updateMarbleSize(currentZoom);
       });
     }
     if (zoomOutBtn) {
       zoomOutBtn.addEventListener("click", () => {
-        console.log("Zoom Out (Navigation Persist)");
+        currentZoom = Math.max(currentZoom - 0.1, 0.5);
+        sys.updateMarbleSize(currentZoom);
       });
     }
   }

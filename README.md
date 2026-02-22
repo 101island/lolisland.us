@@ -38,6 +38,15 @@ bun dev
 bun run build
 ```
 
+## Chat Storage on Cloudflare
+
+Create the following bindings in Cloudflare Pages for this project:
+
+- `CHAT_DB`: D1 database binding for chat messages.
+- `CHAT_IMAGES`: R2 bucket binding for chat image uploads.
+
+The chat API auto-creates the `chat_messages` table and index on first request.
+
 ## Release Instructions
 
 - Submit code to the `dev` branch.

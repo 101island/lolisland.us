@@ -27,4 +27,5 @@ interface Window {
     currentView: string;
     isLoggedIn: boolean;
   };
+  _chatPanelPollTimer?: number | null;
 }

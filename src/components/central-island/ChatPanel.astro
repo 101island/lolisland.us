@@ -1,0 +1,484 @@
+---
+import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+
+const lang = getLangFromUrl(Astro.url);
+const t = getTranslations(lang);
+---
+
+<section class="chat-panel">
+  <div class="chat-header-row">
+    <h3>{t("chat.title")}</h3>
+    <span id="chat-status" class="chat-status"
+      >{t("chat.status.connecting")}</span
+    >
+  </div>
+
+  <ul id="chat-message-list" class="chat-message-list"></ul>
+
+  <div id="chat-emoji-bar" class="chat-emoji-bar">
+    <button
+      type="button"
+      class="emoji-pill"
+      data-emoji-token="[[[default:smile]]]"
+    >
+      :smile:
+    </button>
+    <button
+      type="button"
+      class="emoji-pill"
+      data-emoji-token="[[[default:heart]]]"
+    >
+      :heart:
+    </button>
+    <button
+      type="button"
+      class="emoji-pill"
+      data-emoji-token="[[[default:ok]]]"
+    >
+      :ok:
+    </button>
+  </div>
+
+  <div class="chat-composer">
+    <textarea
+      id="chat-input"
+      class="chat-input"
+      rows="2"
+      maxlength="2000"
+      placeholder={t("chat.placeholder")}
+    ></textarea>
+    <input id="chat-image-input" type="file" accept="image/*" class="hidden">
+    <div class="chat-actions">
+      <button id="chat-upload-btn" type="button" class="chat-action-btn">
+        {t("chat.upload")}
+      </button>
+      <button
+        id="chat-send-btn"
+        type="button"
+        class="chat-send-btn"
+        data-default-text={t("chat.send")}
+      >
+        {t("chat.send")}
+      </button>
+    </div>
+  </div>
+</section>
+
+<script>
+  const CHAT_LIMIT = 50;
+  const CHAT_POLL_INTERVAL_MS = 3000;
+  const EMOJI_TOKEN_PATTERN = /^\[\[\[([^:\]]+):([^\]]+)\]\]\]$/;
+
+  type ChatMessage = {
+    id: string;
+    username: string;
+    kind: "text" | "image";
+    content: string;
+    imageKey: string | null;
+    createdMs: number;
+    createdAt: string;
+  };
+
+  const getLanguage = () => document.documentElement.lang || "en";
+
+  const getText = (key: string) => {
+    const lang = getLanguage();
+    const table: Record<string, Record<string, string>> = {
+      en: {
+        connecting: "Connecting",
+        online: "Online",
+        offline: "Offline",
+        sending: "Sending...",
+        uploadFailed: "Upload failed",
+        sendFailed: "Message failed",
+        needLogin: "Please login first",
+      },
+      "zh-cn": {
+        connecting: "连接中",
+        online: "在线",
+        offline: "离线",
+        sending: "发送中...",
+        uploadFailed: "上传失败",
+        sendFailed: "发送失败",
+        needLogin: "请先登录",
+      },
+      "zh-hk": {
+        connecting: "連線中",
+        online: "在線",
+        offline: "離線",
+        sending: "發送中...",
+        uploadFailed: "上傳失敗",
+        sendFailed: "發送失敗",
+        needLogin: "請先登入",
+      },
+      ja: {
+        connecting: "接続中",
+        online: "オンライン",
+        offline: "オフライン",
+        sending: "送信中...",
+        uploadFailed: "アップロード失敗",
+        sendFailed: "送信失敗",
+        needLogin: "先にログインしてください",
+      },
+    };
+    const values = table[lang] || table.en;
+    return values[key] || table.en[key] || key;
+  };
+
+  const escapeHtml = (value: string) =>
+    value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+
+  const renderMessageContent = (message: ChatMessage) => {
+    if (message.kind === "image" && message.imageKey) {
+      const escaped = encodeURIComponent(message.imageKey);
+      return `<img class="chat-image" src="/api/chat/images/${escaped}" alt="chat image" loading="lazy">`;
+    }
+    const match = message.content.match(EMOJI_TOKEN_PATTERN);
+    if (match) {
+      const pack = escapeHtml(match[1]);
+      const name = escapeHtml(match[2]);
+      return `<span class="emoji-tag" title="${pack}:${name}">${name}</span>`;
+    }
+    return `<span class="chat-text">${escapeHtml(message.content)}</span>`;
+  };
+
+  const renderMessages = (messages: ChatMessage[]) => {
+    const list = document.getElementById("chat-message-list");
+    if (!list) return;
+    list.innerHTML = messages
+      .map((message) => {
+        const username = escapeHtml(message.username || "user");
+        return `<li class="chat-message-item" data-id="${escapeHtml(message.id)}"><div class="chat-message-meta"><span class="chat-user">${username}</span><span class="chat-time">${new Date(message.createdMs).toLocaleTimeString()}</span></div><div class="chat-message-body">${renderMessageContent(message)}</div></li>`;
+      })
+      .join("");
+    list.scrollTop = list.scrollHeight;
+  };
+
+  const setStatus = (value: string, isOnline: boolean) => {
+    const status = document.getElementById("chat-status");
+    if (!status) return;
+    status.textContent = value;
+    status.classList.toggle("chat-status-online", isOnline);
+  };
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    return `Bearer ${token}`;
+  };
+
+  const readMessages = async () => {
+    const res = await fetch(`/api/chat/messages?limit=${CHAT_LIMIT}`, {
+      headers: { "Cache-Control": "no-store" },
+    });
+    if (!res.ok) {
+      throw new Error("Failed to load");
+    }
+    const data = (await res.json()) as { messages: ChatMessage[] };
+    return data.messages || [];
+  };
+
+  const postMessage = async (payload: { text?: string; imageKey?: string }) => {
+    const auth = getAuthHeader();
+    if (!auth) {
+      throw new Error(getText("needLogin"));
+    }
+    const res = await fetch("/api/chat/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: auth,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new Error(getText("sendFailed"));
+    }
+  };
+
+  const uploadImage = async (file: File) => {
+    const auth = getAuthHeader();
+    if (!auth) {
+      throw new Error(getText("needLogin"));
+    }
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await fetch("/api/chat/images", {
+      method: "POST",
+      headers: {
+        Authorization: auth,
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error(getText("uploadFailed"));
+    }
+    const data = (await res.json()) as { key: string };
+    if (!data.key) {
+      throw new Error(getText("uploadFailed"));
+    }
+    return data.key;
+  };
+
+  const setupChat = () => {
+    const input = document.getElementById(
+      "chat-input",
+    ) as HTMLTextAreaElement | null;
+    const sendBtn = document.getElementById(
+      "chat-send-btn",
+    ) as HTMLButtonElement | null;
+    const uploadBtn = document.getElementById(
+      "chat-upload-btn",
+    ) as HTMLButtonElement | null;
+    const imageInput = document.getElementById(
+      "chat-image-input",
+    ) as HTMLInputElement | null;
+    if (!input || !sendBtn || !uploadBtn || !imageInput) return;
+
+    if (window._chatPanelPollTimer) {
+      window.clearInterval(window._chatPanelPollTimer);
+      window._chatPanelPollTimer = null;
+    }
+
+    const refresh = async () => {
+      try {
+        const messages = await readMessages();
+        renderMessages(messages);
+        setStatus(getText("online"), true);
+      } catch {
+        setStatus(getText("offline"), false);
+      }
+    };
+
+    setStatus(getText("connecting"), false);
+    refresh();
+    window._chatPanelPollTimer = window.setInterval(
+      refresh,
+      CHAT_POLL_INTERVAL_MS,
+    );
+
+    sendBtn.onclick = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      const defaultText = sendBtn.dataset.defaultText || getText("send");
+      sendBtn.disabled = true;
+      sendBtn.textContent = getText("sending");
+      try {
+        await postMessage({ text });
+        input.value = "";
+        await refresh();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : getText("sendFailed"));
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = defaultText;
+      }
+    };
+
+    input.onkeydown = async (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendBtn.click();
+      }
+    };
+
+    uploadBtn.onclick = () => {
+      imageInput.click();
+    };
+
+    imageInput.onchange = async () => {
+      const file = imageInput.files?.[0];
+      if (!file) return;
+      uploadBtn.disabled = true;
+      try {
+        const imageKey = await uploadImage(file);
+        await postMessage({ imageKey });
+        await refresh();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : getText("uploadFailed"));
+      } finally {
+        uploadBtn.disabled = false;
+        imageInput.value = "";
+      }
+    };
+
+    document.querySelectorAll("[data-emoji-token]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const token = button.getAttribute("data-emoji-token");
+        if (!token || !input) return;
+        input.value = token;
+        input.focus();
+      });
+    });
+  };
+
+  document.addEventListener("astro:page-load", setupChat);
+  window.addEventListener("logout-success", () => {
+    if (window._chatPanelPollTimer) {
+      window.clearInterval(window._chatPanelPollTimer);
+      window._chatPanelPollTimer = null;
+    }
+  });
+</script>
+
+<style>
+  .chat-panel {
+    margin: 1.5rem auto 0;
+    width: 100%;
+    max-width: 540px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 16px;
+    background: rgba(13, 16, 24, 0.45);
+    padding: 0.9rem;
+  }
+
+  .chat-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+
+  .chat-header-row h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(244, 247, 255, 0.95);
+  }
+
+  .chat-status {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .chat-status-online {
+    color: #8fe2a5;
+  }
+
+  .chat-message-list {
+    margin: 0;
+    padding: 0.2rem 0.2rem 0.2rem 0;
+    list-style: none;
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .chat-message-item {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    padding: 0.45rem 0.55rem;
+  }
+
+  .chat-message-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.62);
+    margin-bottom: 0.2rem;
+  }
+
+  .chat-user {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .chat-message-body {
+    color: rgba(255, 255, 255, 0.9);
+    word-break: break-word;
+    text-align: left;
+  }
+
+  .chat-image {
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    border-radius: 10px;
+  }
+
+  .emoji-tag {
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 0.15rem 0.55rem;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .chat-emoji-bar {
+    display: flex;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .emoji-pill {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.82);
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    cursor: pointer;
+    font-size: 0.76rem;
+  }
+
+  .chat-composer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .chat-input {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.2);
+    color: rgba(255, 255, 255, 0.92);
+    border-radius: 10px;
+    padding: 0.5rem 0.6rem;
+    resize: vertical;
+    min-height: 64px;
+  }
+
+  .chat-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  .chat-action-btn,
+  .chat-send-btn {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.38rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .chat-send-btn {
+    background: rgba(154, 210, 190, 0.22);
+    border-color: rgba(154, 210, 190, 0.4);
+  }
+
+  .chat-action-btn:disabled,
+  .chat-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .chat-panel {
+      margin-top: 1rem;
+      padding: 0.75rem;
+    }
+
+    .chat-message-list {
+      max-height: 240px;
+    }
+  }
+</style>

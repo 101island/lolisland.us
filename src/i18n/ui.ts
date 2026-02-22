@@ -45,6 +45,11 @@ export const ui = {
     "dashboard.logged_in": "Logged In",
     "dashboard.change_avatar": "Change Avatar",
     "dashboard.instruction": "Development in progress...",
+    "chat.title": "Island Chat",
+    "chat.placeholder": "Send a message or [[[pack:name]]]",
+    "chat.upload": "Image",
+    "chat.send": "Send",
+    "chat.status.connecting": "Connecting",
 
     // Verification
     "verification.title": "Verification",
@@ -105,6 +110,11 @@ export const ui = {
     "dashboard.logged_in": "已登录",
     "dashboard.change_avatar": "修改头像",
     "dashboard.instruction": "开发中...",
+    "chat.title": "岛内聊天",
+    "chat.placeholder": "输入消息或 [[[表情库:表情名]]]",
+    "chat.upload": "图片",
+    "chat.send": "发送",
+    "chat.status.connecting": "连接中",
 
     // Verification
     "verification.title": "验证",
@@ -164,6 +174,11 @@ export const ui = {
     "dashboard.logged_in": "已登入",
     "dashboard.change_avatar": "修改頭像",
     "dashboard.instruction": "開發中...",
+    "chat.title": "島內聊天",
+    "chat.placeholder": "輸入訊息或 [[[表情庫:表情名]]]",
+    "chat.upload": "圖片",
+    "chat.send": "發送",
+    "chat.status.connecting": "連線中",
 
     // Verification
     "verification.title": "驗證",
@@ -223,6 +238,11 @@ export const ui = {
     "dashboard.logged_in": "ログイン中",
     "dashboard.change_avatar": "アバター変更",
     "dashboard.instruction": "開発中...",
+    "chat.title": "島チャット",
+    "chat.placeholder": "メッセージか [[[pack:name]]] を入力",
+    "chat.upload": "画像",
+    "chat.send": "送信",
+    "chat.status.connecting": "接続中",
 
     // Verification
     "verification.title": "認証",

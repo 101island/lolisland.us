@@ -1,5 +1,6 @@
 ---
 import { getLangFromUrl, getTranslations } from "../../i18n/utils";
+import ChatPanel from "./ChatPanel.astro";
 
 const lang = getLangFromUrl(Astro.url);
 const t = getTranslations(lang);
@@ -35,6 +36,7 @@ const t = getTranslations(lang);
 
     <h2>{t("dashboard.logged_in")}</h2>
     <p class="instruction">{t("dashboard.instruction")}</p>
+    <ChatPanel/>
   </div>
 
   <!-- Cropper View (Replaces content) -->

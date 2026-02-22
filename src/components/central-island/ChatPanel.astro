@@ -186,7 +186,7 @@ const t = getTranslations(lang);
     const res = await fetch(
       `${BACKEND_API_BASE}/chat/messages?limit=${CHAT_LIMIT}`,
       {
-        headers: { "Cache-Control": "no-store" },
+        cache: "no-store",
       },
     );
 

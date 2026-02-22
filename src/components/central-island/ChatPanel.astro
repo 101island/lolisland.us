@@ -65,6 +65,8 @@ const t = getTranslations(lang);
 </section>
 
 <script>
+  import { BACKEND_API_BASE } from "../../config/loginApiBaseUrl";
+
   const CHAT_LIMIT = 50;
   const CHAT_POLL_INTERVAL_MS = 3000;
   const EMOJI_TOKEN_PATTERN = /^\[\[\[([^:\]]+):([^\]]+)\]\]\]$/;
@@ -135,7 +137,7 @@ const t = getTranslations(lang);
   const renderMessageContent = (message: ChatMessage) => {
     if (message.kind === "image" && message.imageKey) {
       const escaped = encodeURIComponent(message.imageKey);
-      return `<img class="chat-image" src="/api/chat/images/${escaped}" alt="chat image" loading="lazy">`;
+      return `<img class="chat-image" src="${BACKEND_API_BASE}/chat/images/${escaped}" alt="chat image" loading="lazy">`;
     }
     const match = message.content.match(EMOJI_TOKEN_PATTERN);
     if (match) {
@@ -172,9 +174,12 @@ const t = getTranslations(lang);
   };
 
   const readMessages = async () => {
-    const res = await fetch(`/api/chat/messages?limit=${CHAT_LIMIT}`, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    const res = await fetch(
+      `${BACKEND_API_BASE}/chat/messages?limit=${CHAT_LIMIT}`,
+      {
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
     if (!res.ok) {
       throw new Error("Failed to load");
     }
@@ -187,7 +192,7 @@ const t = getTranslations(lang);
     if (!auth) {
       throw new Error(getText("needLogin"));
     }
-    const res = await fetch("/api/chat/messages", {
+    const res = await fetch(`${BACKEND_API_BASE}/chat/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -207,7 +212,7 @@ const t = getTranslations(lang);
     }
     const formData = new FormData();
     formData.append("image", file);
-    const res = await fetch("/api/chat/images", {
+    const res = await fetch(`${BACKEND_API_BASE}/chat/images`, {
       method: "POST",
       headers: {
         Authorization: auth,

@@ -38,14 +38,10 @@ bun dev
 bun run build
 ```
 
-## Chat Storage on Cloudflare
+## Chat Notes
 
-Create the following bindings in Cloudflare Pages for this project:
-
-- `CHAT_DB`: D1 database binding for chat messages.
-- `CHAT_IMAGES`: R2 bucket binding for chat image uploads.
-
-The chat API auto-creates the `chat_messages` table and index on first request.
+Chat APIs are served by `loliscore` (`api.lolisland.us`).
+This frontend calls backend routes directly for messages and images.
 
 ## Release Instructions
 

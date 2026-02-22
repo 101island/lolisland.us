@@ -38,14 +38,10 @@ bun dev
 bun run build
 ```
 
-## Cloudflare 聊天存储配置
+## 聊天说明
 
-请在 Cloudflare Pages 中为该项目绑定以下资源：
-
-- `CHAT_DB`：用于聊天消息存储的 D1 数据库。
-- `CHAT_IMAGES`：用于聊天图片上传的 R2 Bucket。
-
-聊天 API 会在首次请求时自动创建 `chat_messages` 表和索引。
+聊天 API 由 `loliscore`（`api.lolisland.us`）提供。
+本前端直接请求后端的消息与图片接口。
 
 ## 发布说明
 

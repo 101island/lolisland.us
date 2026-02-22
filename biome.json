@@ -16,7 +16,8 @@
       "!**/src/public/**/*",
       "!**/dist/**/*",
       "!**/node_modules/**/*",
-      "!**/.astro/**/*"
+      "!**/.astro/**/*",
+      "!**/loliscore/**/*"
     ]
   },
   "assist": {

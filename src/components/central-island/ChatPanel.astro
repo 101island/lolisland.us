@@ -5,9 +5,12 @@ const lang = getLangFromUrl(Astro.url);
 const t = getTranslations(lang);
 ---
 
-<section class="group-chat">
-  <header class="group-chat-header">
-    <h3>{t("chat.title")}</h3>
+<section class="chat-shell">
+  <header class="chat-header">
+    <div class="chat-header-meta">
+      <h3>{t("chat.title")}</h3>
+      <p class="chat-subtitle">island group</p>
+    </div>
     <span id="chat-status" class="chat-status"
       >{t("chat.status.connecting")}</span
     >
@@ -15,31 +18,17 @@ const t = getTranslations(lang);
 
   <ul id="chat-message-list" class="chat-message-list"></ul>
 
-  <div id="chat-emoji-bar" class="chat-emoji-bar">
-    <button
-      type="button"
-      class="emoji-pill"
-      data-emoji-token="[[[default:smile]]]"
-    >
-      :smile:
-    </button>
-    <button
-      type="button"
-      class="emoji-pill"
-      data-emoji-token="[[[default:heart]]]"
-    >
-      :heart:
-    </button>
-    <button
-      type="button"
-      class="emoji-pill"
-      data-emoji-token="[[[default:ok]]]"
-    >
-      :ok:
+  <div id="reply-box" class="reply-box hidden">
+    <div class="reply-content">
+      <p id="reply-author" class="reply-author"></p>
+      <p id="reply-preview" class="reply-preview"></p>
+    </div>
+    <button id="reply-cancel-btn" class="reply-cancel-btn" type="button">
+      ×
     </button>
   </div>
 
-  <div class="chat-composer">
+  <div class="composer-row">
     <textarea
       id="chat-input"
       class="chat-input"
@@ -47,18 +36,35 @@ const t = getTranslations(lang);
       maxlength="2000"
       placeholder={t("chat.placeholder")}
     ></textarea>
-    <input id="chat-image-input" type="file" accept="image/*" class="hidden">
-    <div class="chat-actions">
-      <button id="chat-upload-btn" type="button" class="chat-action-btn">
-        {t("chat.upload")}
+
+    <div class="composer-actions">
+      <input id="chat-image-input" type="file" accept="image/*" class="hidden">
+      <button id="chat-emoji-toggle" class="action-btn" type="button">
+        😊
       </button>
+      <button id="chat-upload-btn" class="action-btn" type="button">＋</button>
       <button
         id="chat-send-btn"
+        class="send-btn"
         type="button"
-        class="chat-send-btn"
         data-default-text={t("chat.send")}
       >
         {t("chat.send")}
+      </button>
+    </div>
+  </div>
+
+  <div id="chat-emoji-panel" class="emoji-panel hidden">
+    <div class="emoji-grid" id="chat-emoji-grid"></div>
+    <div class="token-grid">
+      <button class="token-btn" type="button" data-token="[[[default:smile]]]">
+        [[[default:smile]]]
+      </button>
+      <button class="token-btn" type="button" data-token="[[[default:heart]]]">
+        [[[default:heart]]]
+      </button>
+      <button class="token-btn" type="button" data-token="[[[default:ok]]]">
+        [[[default:ok]]]
       </button>
     </div>
   </div>
@@ -70,6 +76,21 @@ const t = getTranslations(lang);
   const CHAT_LIMIT = 50;
   const CHAT_POLL_INTERVAL_MS = 3000;
   const EMOJI_TOKEN_PATTERN = /^\[\[\[([^:\]]+):([^\]]+)\]\]\]$/;
+  const REPLY_PREFIX_PATTERN = /^\[\[\[reply:([^\]]+)\]\]\]\n?/;
+  const EMOJI_PICKER = [
+    "😀",
+    "😆",
+    "🥰",
+    "🤔",
+    "😭",
+    "😎",
+    "😡",
+    "👍",
+    "🙏",
+    "🎉",
+    "✨",
+    "🔥",
+  ];
 
   type ChatMessage = {
     id: string;
@@ -78,6 +99,16 @@ const t = getTranslations(lang);
     content: string;
     imageKey: string | null;
     createdMs: number;
+  };
+
+  type UserAvatar = {
+    name: string;
+    id: string;
+  };
+
+  type MessageView = ChatMessage & {
+    plainContent: string;
+    replyToId: string | null;
   };
 
   const getLanguage = () => document.documentElement.lang || "en";
@@ -92,6 +123,7 @@ const t = getTranslations(lang);
         uploadFailed: "Upload failed",
         sendFailed: "Message failed",
         needLogin: "Please login first",
+        replying: "Replying to",
       },
       "zh-cn": {
         connecting: "连接中",
@@ -101,6 +133,7 @@ const t = getTranslations(lang);
         uploadFailed: "上传失败",
         sendFailed: "发送失败",
         needLogin: "请先登录",
+        replying: "回复",
       },
       "zh-hk": {
         connecting: "連線中",
@@ -110,6 +143,7 @@ const t = getTranslations(lang);
         uploadFailed: "上傳失敗",
         sendFailed: "發送失敗",
         needLogin: "請先登入",
+        replying: "回覆",
       },
       ja: {
         connecting: "接続中",
@@ -119,11 +153,11 @@ const t = getTranslations(lang);
         uploadFailed: "アップロード失敗",
         sendFailed: "送信失敗",
         needLogin: "先にログインしてください",
+        replying: "返信先",
       },
     };
 
-    const lang = getLanguage();
-    const values = table[lang] || table.en;
+    const values = table[getLanguage()] || table.en;
     return values[key] || table.en[key] || key;
   };
 
@@ -134,65 +168,87 @@ const t = getTranslations(lang);
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
 
-  const messageBodyHtml = (message: ChatMessage) => {
+  const previewText = (value: string) => {
+    const text = value.replaceAll("\n", " ").trim();
+    return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+  };
+
+  const parseMessage = (message: ChatMessage): MessageView => {
+    const match = message.content.match(REPLY_PREFIX_PATTERN);
+    const replyToId = match?.[1] || null;
+    const plainContent = match
+      ? message.content.replace(REPLY_PREFIX_PATTERN, "")
+      : message.content;
+    return {
+      ...message,
+      plainContent,
+      replyToId,
+    };
+  };
+
+  const getAvatarByUser = (
+    username: string,
+    ownUsername: string,
+    ownAvatar: string,
+    avatarMap: Map<string, string>,
+  ) => {
+    if (username === ownUsername && /^[0-9a-f]{16}$/.test(ownAvatar)) {
+      return `${BACKEND_API_BASE}/user/avatar/${ownAvatar}`;
+    }
+    const avatarId = avatarMap.get(username) || "";
+    if (/^[0-9a-f]{16}$/.test(avatarId)) {
+      return `${BACKEND_API_BASE}/user/avatar/${avatarId}`;
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=1f2937&color=ffffff&size=96`;
+  };
+
+  const renderContent = (message: MessageView) => {
     if (message.kind === "image" && message.imageKey) {
-      const escaped = encodeURIComponent(message.imageKey);
-      return `<img class="chat-image" src="${BACKEND_API_BASE}/chat/images/${escaped}" alt="chat image" loading="lazy">`;
+      const image = encodeURIComponent(message.imageKey);
+      return `<img class="chat-image" src="${BACKEND_API_BASE}/chat/images/${image}" alt="chat image" loading="lazy">`;
     }
 
-    const match = message.content.match(EMOJI_TOKEN_PATTERN);
-    if (match) {
-      const pack = escapeHtml(match[1]);
-      const name = escapeHtml(match[2]);
-      return `<span class="emoji-tag" title="${pack}:${name}">${name}</span>`;
+    const emojiMatch = message.plainContent.match(EMOJI_TOKEN_PATTERN);
+    if (emojiMatch) {
+      const pack = escapeHtml(emojiMatch[1]);
+      const name = escapeHtml(emojiMatch[2]);
+      return `<span class="emoji-token" title="${pack}:${name}">${name}</span>`;
     }
 
-    return `<span class="chat-text">${escapeHtml(message.content)}</span>`;
+    return `<span>${escapeHtml(message.plainContent)}</span>`;
   };
 
-  const renderMessages = (messages: ChatMessage[]) => {
-    const list = document.getElementById("chat-message-list");
-    if (!list) return;
-
-    const self = localStorage.getItem("username") || "";
-
-    list.innerHTML = messages
-      .map((message) => {
-        const isOwn = self && message.username === self;
-        const itemClass = isOwn
-          ? "chat-message-item chat-message-item-own"
-          : "chat-message-item";
-        return `<li class="${itemClass}" data-id="${escapeHtml(message.id)}"><div class="chat-bubble"><p class="chat-user">${escapeHtml(message.username)}</p><div class="chat-message-body">${messageBodyHtml(message)}</div></div></li>`;
-      })
-      .join("");
-
-    list.scrollTop = list.scrollHeight;
-  };
-
-  const setStatus = (text: string, isOnline: boolean) => {
+  const setStatus = (text: string, online: boolean) => {
     const status = document.getElementById("chat-status");
     if (!status) return;
     status.textContent = text;
-    status.classList.toggle("chat-status-online", isOnline);
+    status.classList.toggle("chat-status-online", online);
   };
 
-  const getAuthHeader = () => {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-    return `Bearer ${token}`;
+  const fetchUsers = async () => {
+    const res = await fetch(`${BACKEND_API_BASE}/users`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return new Map<string, string>();
+    const users = (await res.json()) as UserAvatar[];
+    return new Map<string, string>(users.map((item) => [item.name, item.id]));
   };
 
-  const readMessages = async () => {
+  const fetchMessages = async () => {
     const res = await fetch(
       `${BACKEND_API_BASE}/chat/messages?limit=${CHAT_LIMIT}`,
       {
         cache: "no-store",
       },
     );
-
-    if (!res.ok) throw new Error("Failed");
+    if (!res.ok) throw new Error("load failed");
     const data = (await res.json()) as { messages: ChatMessage[] };
     return data.messages || [];
+  };
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : null;
   };
 
   const postMessage = async (payload: { text?: string; imageKey?: string }) => {
@@ -231,7 +287,50 @@ const t = getTranslations(lang);
     return data.key;
   };
 
+  const setupEmojiPanel = (input: HTMLTextAreaElement) => {
+    const panel = document.getElementById("chat-emoji-panel");
+    const grid = document.getElementById("chat-emoji-grid");
+    const toggle = document.getElementById("chat-emoji-toggle");
+    if (!panel || !grid || !toggle) return;
+
+    grid.innerHTML = EMOJI_PICKER.map(
+      (emoji) =>
+        `<button type="button" class="emoji-btn" data-emoji="${emoji}">${emoji}</button>`,
+    ).join("");
+
+    const insertAtCursor = (value: string) => {
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const text = input.value;
+      input.value = `${text.slice(0, start)}${value}${text.slice(end)}`;
+      const next = start + value.length;
+      input.setSelectionRange(next, next);
+      input.focus();
+    };
+
+    toggle.addEventListener("click", () => {
+      panel.classList.toggle("hidden");
+    });
+
+    grid.querySelectorAll("[data-emoji]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const emoji = button.getAttribute("data-emoji");
+        if (!emoji) return;
+        insertAtCursor(emoji);
+      });
+    });
+
+    panel.querySelectorAll("[data-token]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const token = button.getAttribute("data-token");
+        if (!token) return;
+        insertAtCursor(token);
+      });
+    });
+  };
+
   const setupChat = () => {
+    const list = document.getElementById("chat-message-list");
     const input = document.getElementById(
       "chat-input",
     ) as HTMLTextAreaElement | null;
@@ -244,23 +343,105 @@ const t = getTranslations(lang);
     const imageInput = document.getElementById(
       "chat-image-input",
     ) as HTMLInputElement | null;
-
-    if (!input || !sendBtn || !uploadBtn || !imageInput) return;
-
-    if (window._chatPanelPollTimer) {
-      window.clearInterval(window._chatPanelPollTimer);
-      window._chatPanelPollTimer = null;
+    const replyBox = document.getElementById("reply-box");
+    const replyAuthor = document.getElementById("reply-author");
+    const replyPreview = document.getElementById("reply-preview");
+    const replyCancelBtn = document.getElementById("reply-cancel-btn");
+    if (
+      !list ||
+      !input ||
+      !sendBtn ||
+      !uploadBtn ||
+      !imageInput ||
+      !replyBox ||
+      !replyAuthor ||
+      !replyPreview ||
+      !replyCancelBtn
+    ) {
+      return;
     }
+
+    setupEmojiPanel(input);
+
+    let replyingTo: MessageView | null = null;
+    let currentMessages: MessageView[] = [];
+    let avatarMap = new Map<string, string>();
+
+    const clearReply = () => {
+      replyingTo = null;
+      replyBox.classList.add("hidden");
+    };
+
+    const setReply = (messageId: string) => {
+      const target = currentMessages.find((item) => item.id === messageId);
+      if (!target) return;
+      replyingTo = target;
+      replyAuthor.textContent = `${getText("replying")} ${target.username}`;
+      replyPreview.textContent = previewText(target.plainContent || "[image]");
+      replyBox.classList.remove("hidden");
+      input.focus();
+    };
+
+    replyCancelBtn.addEventListener("click", clearReply);
+
+    const render = () => {
+      const ownUsername = localStorage.getItem("username") || "";
+      const ownAvatar = localStorage.getItem("avatar") || "";
+      const map = new Map(currentMessages.map((item) => [item.id, item]));
+
+      list.innerHTML = currentMessages
+        .map((message) => {
+          const isOwn = ownUsername === message.username;
+          const bubbleClass = isOwn
+            ? "message-row message-row-own"
+            : "message-row";
+          const avatar = getAvatarByUser(
+            message.username,
+            ownUsername,
+            ownAvatar,
+            avatarMap,
+          );
+          const replyTarget = message.replyToId
+            ? map.get(message.replyToId)
+            : null;
+          const replyBlock = replyTarget
+            ? `<div class="reply-quote"><p>${escapeHtml(replyTarget.username)}</p><span>${escapeHtml(previewText(replyTarget.plainContent || "[image]"))}</span></div>`
+            : "";
+
+          return `<li class="${bubbleClass}" data-id="${escapeHtml(message.id)}"><img class="message-avatar" src="${avatar}" alt="${escapeHtml(message.username)}" loading="lazy"><div class="message-bubble"><div class="message-head"><span>${escapeHtml(message.username)}</span><time>${new Date(message.createdMs).toLocaleTimeString()}</time></div>${replyBlock}<div class="message-body">${renderContent(message)}</div><div class="message-foot"><button type="button" class="reply-btn" data-reply-id="${escapeHtml(message.id)}">reply</button></div></div></li>`;
+        })
+        .join("");
+
+      list.querySelectorAll("[data-reply-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.getAttribute("data-reply-id");
+          if (!id) return;
+          setReply(id);
+        });
+      });
+
+      list.scrollTop = list.scrollHeight;
+    };
 
     const refresh = async () => {
       try {
-        const messages = await readMessages();
-        renderMessages(messages);
+        const [messages, users] = await Promise.all([
+          fetchMessages(),
+          fetchUsers(),
+        ]);
+        avatarMap = users;
+        currentMessages = messages.map(parseMessage);
+        render();
         setStatus(getText("online"), true);
       } catch {
         setStatus(getText("offline"), false);
       }
     };
+
+    if (window._chatPanelPollTimer) {
+      window.clearInterval(window._chatPanelPollTimer);
+      window._chatPanelPollTimer = null;
+    }
 
     setStatus(getText("connecting"), false);
     refresh();
@@ -270,16 +451,20 @@ const t = getTranslations(lang);
     );
 
     sendBtn.onclick = async () => {
-      const text = input.value.trim();
-      if (!text) return;
+      const rawText = input.value.trim();
+      if (!rawText) return;
 
       const defaultText = sendBtn.dataset.defaultText || getText("send");
       sendBtn.disabled = true;
       sendBtn.textContent = getText("sending");
 
       try {
+        const text = replyingTo
+          ? `[[[reply:${replyingTo.id}]]]\n${rawText}`
+          : rawText;
         await postMessage({ text });
         input.value = "";
+        clearReply();
         await refresh();
       } catch (error) {
         alert(error instanceof Error ? error.message : getText("sendFailed"));
@@ -307,7 +492,9 @@ const t = getTranslations(lang);
       uploadBtn.disabled = true;
       try {
         const imageKey = await uploadImage(file);
-        await postMessage({ imageKey });
+        const text = replyingTo ? `[[[reply:${replyingTo.id}]]]` : undefined;
+        await postMessage({ imageKey, text });
+        clearReply();
         await refresh();
       } catch (error) {
         alert(error instanceof Error ? error.message : getText("uploadFailed"));
@@ -316,15 +503,6 @@ const t = getTranslations(lang);
         imageInput.value = "";
       }
     };
-
-    document.querySelectorAll("[data-emoji-token]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const token = button.getAttribute("data-emoji-token");
-        if (!token) return;
-        input.value = token;
-        input.focus();
-      });
-    });
   };
 
   document.addEventListener("astro:page-load", setupChat);
@@ -337,41 +515,48 @@ const t = getTranslations(lang);
 </script>
 
 <style>
-  .group-chat {
+  .chat-shell {
     height: 100%;
     border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     background: linear-gradient(
       180deg,
-      rgba(16, 19, 29, 0.65),
-      rgba(14, 18, 29, 0.85)
+      rgba(16, 19, 30, 0.7),
+      rgba(11, 15, 25, 0.9)
     );
-    border: 1px solid rgba(255, 255, 255, 0.14);
     display: grid;
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-rows: auto 1fr auto auto auto;
+    gap: 0.5rem;
     padding: 0.75rem;
-    gap: 0.6rem;
   }
 
-  .group-chat-header {
+  .chat-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 0.15rem 0.25rem;
+    align-items: center;
+    padding: 0.1rem 0.2rem;
   }
 
-  .group-chat-header h3 {
+  .chat-header h3 {
     margin: 0;
-    color: rgba(244, 248, 255, 0.95);
+    color: rgba(255, 255, 255, 0.96);
     font-size: 1rem;
   }
 
+  .chat-subtitle {
+    margin: 0;
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: lowercase;
+  }
+
   .chat-status {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.58);
   }
 
   .chat-status-online {
-    color: #9eebb0;
+    color: #a4ecb6;
   }
 
   .chat-message-list {
@@ -384,41 +569,90 @@ const t = getTranslations(lang);
     gap: 0.55rem;
   }
 
-  .chat-message-item {
+  .message-row {
     display: flex;
+    align-items: flex-end;
+    gap: 0.45rem;
     justify-content: flex-start;
   }
 
-  .chat-message-item-own {
+  .message-row-own {
     justify-content: flex-end;
+    flex-direction: row-reverse;
   }
 
-  .chat-bubble {
-    max-width: min(72%, 560px);
-    border-radius: 12px 12px 12px 4px;
+  .message-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex: 0 0 auto;
+  }
+
+  .message-bubble {
+    max-width: min(74%, 560px);
+    border-radius: 14px 14px 14px 5px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
     padding: 0.45rem 0.58rem;
     text-align: left;
   }
 
-  .chat-message-item-own .chat-bubble {
-    border-radius: 12px 12px 4px 12px;
-    background: rgba(114, 194, 156, 0.23);
-    border-color: rgba(123, 215, 170, 0.34);
+  .message-row-own .message-bubble {
+    border-radius: 14px 14px 5px 14px;
+    border-color: rgba(129, 215, 175, 0.42);
+    background: rgba(122, 208, 167, 0.24);
   }
 
-  .chat-user {
-    margin: 0 0 0.2rem;
-    color: rgba(255, 255, 255, 0.74);
-    font-size: 0.74rem;
+  .message-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.68);
+    margin-bottom: 0.2rem;
+  }
+
+  .message-body {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.92rem;
+    word-break: break-word;
+  }
+
+  .message-foot {
+    margin-top: 0.28rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .reply-btn {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.64);
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 0;
+    text-transform: lowercase;
+  }
+
+  .reply-quote {
+    border-left: 2px solid rgba(255, 255, 255, 0.28);
+    padding-left: 0.45rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .reply-quote p {
+    margin: 0;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.82);
     font-weight: 600;
   }
 
-  .chat-message-body {
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 0.93rem;
-    word-break: break-word;
+  .reply-quote span {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.66);
   }
 
   .chat-image {
@@ -428,75 +662,125 @@ const t = getTranslations(lang);
     border-radius: 10px;
   }
 
-  .emoji-tag {
+  .emoji-token {
     display: inline-block;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.14);
-    padding: 0.15rem 0.6rem;
-    font-size: 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 0.15rem 0.58rem;
+    background: rgba(255, 255, 255, 0.12);
   }
 
-  .chat-emoji-bar {
+  .reply-box {
     display: flex;
-    gap: 0.4rem;
+    justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.45rem 0.55rem;
   }
 
-  .emoji-pill {
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.07);
-    color: rgba(255, 255, 255, 0.85);
-    border-radius: 999px;
-    padding: 0.2rem 0.55rem;
-    cursor: pointer;
+  .reply-author,
+  .reply-preview {
+    margin: 0;
+  }
+
+  .reply-author {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .reply-preview {
+    color: rgba(255, 255, 255, 0.68);
     font-size: 0.75rem;
   }
 
-  .chat-composer {
+  .reply-cancel-btn {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .composer-row {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 0.55rem;
+    gap: 0.5rem;
   }
 
   .chat-input {
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     background: rgba(0, 0, 0, 0.24);
     color: rgba(255, 255, 255, 0.96);
     padding: 0.55rem 0.65rem;
-    min-height: 66px;
     resize: none;
+    min-height: 64px;
   }
 
-  .chat-actions {
+  .composer-actions {
     display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 0.4rem;
   }
 
-  .chat-action-btn,
-  .chat-send-btn {
+  .action-btn,
+  .send-btn {
     border-radius: 10px;
-    padding: 0.45rem 0.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: rgba(255, 255, 255, 0.92);
     background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    font-size: 0.85rem;
+    padding: 0.45rem 0.72rem;
+    font-size: 0.86rem;
   }
 
-  .chat-send-btn {
-    background: rgba(128, 216, 174, 0.26);
-    border-color: rgba(128, 216, 174, 0.42);
+  .send-btn {
+    background: rgba(126, 217, 173, 0.3);
+    border-color: rgba(126, 217, 173, 0.46);
+    min-width: 72px;
   }
 
-  .chat-action-btn:disabled,
-  .chat-send-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .emoji-panel {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(14, 18, 28, 0.86);
+    padding: 0.55rem;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .emoji-btn {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.05rem;
+    padding: 0.2rem;
+  }
+
+  .token-grid {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .token-btn {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.86);
+    cursor: pointer;
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
   }
 
   .hidden {
@@ -504,22 +788,25 @@ const t = getTranslations(lang);
   }
 
   @media (max-width: 900px) {
-    .group-chat {
+    .chat-shell {
       border-radius: 12px;
       padding: 0.55rem;
     }
 
-    .chat-bubble {
-      max-width: 86%;
+    .message-bubble {
+      max-width: 84%;
     }
 
-    .chat-composer {
+    .composer-row {
       grid-template-columns: 1fr;
     }
 
-    .chat-actions {
-      flex-direction: row;
+    .composer-actions {
       justify-content: flex-end;
+    }
+
+    .emoji-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
   }
 </style>

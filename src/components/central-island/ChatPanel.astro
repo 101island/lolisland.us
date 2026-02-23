@@ -3,22 +3,39 @@ import { getLangFromUrl, getTranslations } from "../../i18n/utils";
 
 const lang = getLangFromUrl(Astro.url);
 const t = getTranslations(lang);
-const qfaceModules = import.meta.glob("../../assets/emoji/*.png", {
+
+import unknownEmojiUrl from "../../assets/emoji/unknown.svg?url";
+
+const emojiModules = import.meta.glob("../../assets/emoji/*/*.png", {
   eager: true,
   import: "default",
 }) as Record<string, string>;
-const qfaceAssetMap = Object.fromEntries(
-  Object.entries(qfaceModules)
-    .map(([path, url]) => {
-      const file = path.split("/").pop() || "";
-      const name = file.replace(/\.png$/i, "");
-      return [name, url];
-    })
-    .filter(([name, url]) => name.length > 0 && typeof url === "string"),
+const emojiAssetMap = Object.entries(emojiModules).reduce(
+  (acc, [path, url]) => {
+    const match = path.match(/\/emoji\/([^/]+)\/([^/]+)\.png$/i);
+    if (!match) return acc;
+
+    const decodeSafe = (value: string) => {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    };
+
+    const pack = decodeSafe(match[1]);
+    const name = decodeSafe(match[2]);
+    if (!pack || !name || typeof url !== "string") return acc;
+
+    if (!acc[pack]) acc[pack] = {};
+    acc[pack][name] = url;
+    return acc;
+  },
+  {} as Record<string, Record<string, string>>,
 );
 ---
 
-<section class="chat-shell" data-qface-assets={JSON.stringify(qfaceAssetMap)}>
+<section class="chat-shell">
   <span id="chat-status" class="chat-status chat-status-compact"
     >{t("chat.status.connecting")}</span
   >
@@ -70,8 +87,9 @@ const qfaceAssetMap = Object.fromEntries(
   <div id="chat-context-menu" class="chat-context-menu hidden"></div>
 </section>
 
-<script is:inline define:vars={{ qfaceAssetMap }}>
-  window._qfaceAssets = qfaceAssetMap;
+<script is:inline define:vars={{ emojiAssetMap, unknownEmojiUrl }}>
+  window._emojiAssets = emojiAssetMap;
+  window._unknownEmojiUrl = unknownEmojiUrl;
 </script>
 
 <script>
@@ -99,44 +117,6 @@ const qfaceAssetMap = Object.fromEntries(
     "✨",
     "🔥",
   ];
-  const DEFAULT_QFACE_PICKER = [
-    "微笑",
-    "撇嘴",
-    "色",
-    "发呆",
-    "得意",
-    "流泪",
-    "害羞",
-    "闭嘴",
-    "睡",
-    "大哭",
-    "尴尬",
-    "发怒",
-    "调皮",
-    "呲牙",
-    "惊讶",
-    "难过",
-    "酷",
-    "抓狂",
-    "吐",
-    "偷笑",
-    "可爱",
-    "白眼",
-    "傲慢",
-    "饥饿",
-    "困",
-    "惊恐",
-    "流汗",
-    "憨笑",
-    "悠闲",
-    "奋斗",
-    "咒骂",
-    "疑问",
-    "嘘",
-    "晕",
-    "折磨",
-    "衰",
-  ];
   const QUICK_REACTIONS = [
     { value: "😀" },
     { value: "🥰" },
@@ -144,7 +124,8 @@ const qfaceAssetMap = Object.fromEntries(
     { value: "[[[qface:微笑]]]" },
     { value: "[[[qface:疑问]]]" },
   ];
-  let qfaceAssets: Record<string, string> = {};
+  let emojiAssets: Record<string, Record<string, string>> = {};
+  let unknownEmoji = "";
 
   type ChatMessage = {
     id: string;
@@ -293,7 +274,20 @@ const qfaceAssetMap = Object.fromEntries(
     };
   };
 
-  const getQfaceImage = (name: string) => qfaceAssets[name] || "";
+  const getEmojiImage = (pack: string, name: string) =>
+    emojiAssets[pack]?.[name] || "";
+
+  const renderEmojiTokenImage = (
+    pack: string,
+    name: string,
+    sizeClass = "",
+  ) => {
+    const src = getEmojiImage(pack, name) || unknownEmoji;
+    if (!src) {
+      return `<span class="emoji-token" title="${escapeHtml(`${pack}:${name}`)}">?</span>`;
+    }
+    return `<img class="qface-inline ${sizeClass}" src="${escapeHtml(src)}" alt="${escapeHtml(`[${name}]`)}" title="${escapeHtml(`${pack}:${name}`)}" loading="lazy">`;
+  };
 
   const renderReactionValueHtml = (value: string) => {
     const tokenMatch = value.match(EMOJI_TOKEN_PATTERN);
@@ -303,15 +297,7 @@ const qfaceAssetMap = Object.fromEntries(
 
     const pack = tokenMatch[1].trim().toLowerCase();
     const name = tokenMatch[2].trim();
-    if (pack === "qface") {
-      const src = getQfaceImage(name);
-      if (src) {
-        return `<img class="qface-inline qface-inline-small" src="${escapeHtml(src)}" alt="${escapeHtml(`[${name}]`)}" loading="lazy">`;
-      }
-      return `<span>${escapeHtml(`[${name}]`)}</span>`;
-    }
-
-    return `<span>${escapeHtml(name)}</span>`;
+    return renderEmojiTokenImage(pack, name, "qface-inline-small");
   };
 
   const getAvatarByUser = (
@@ -356,24 +342,7 @@ const qfaceAssetMap = Object.fromEntries(
         parts.push(`<span>${escapeHtml(plainChunk)}</span>`);
       }
 
-      const safePack = escapeHtml(pack);
-      const safeName = escapeHtml(name);
-      if (pack === "qface") {
-        const src = getQfaceImage(name);
-        if (src) {
-          parts.push(
-            `<img class="qface-inline" src="${escapeHtml(src)}" alt="${escapeHtml(`[${name}]`)}" title="${safePack}:${safeName}" loading="lazy">`,
-          );
-        } else {
-          parts.push(
-            `<span class="qface-token" title="${safePack}:${safeName}">[${safeName}]</span>`,
-          );
-        }
-      } else {
-        parts.push(
-          `<span class="emoji-token" title="${safePack}:${safeName}">${safeName}</span>`,
-        );
-      }
+      parts.push(renderEmojiTokenImage(pack, name));
 
       cursor = start + full.length;
     }
@@ -636,10 +605,9 @@ const qfaceAssetMap = Object.fromEntries(
     const qfaceGrid = document.getElementById("chat-qface-grid");
     const toggle = document.getElementById("chat-emoji-toggle");
     if (!panel || !grid || !qfaceGrid || !toggle) return;
-    const qfacePicker =
-      Object.keys(qfaceAssets).length > 0
-        ? Object.keys(qfaceAssets)
-        : DEFAULT_QFACE_PICKER;
+    const qfacePicker = Object.keys(emojiAssets.qface || {}).sort((a, b) =>
+      a.localeCompare(b, "zh-Hans-CN-u-co-pinyin"),
+    );
 
     grid.innerHTML = EMOJI_PICKER.map(
       (emoji) =>
@@ -647,26 +615,24 @@ const qfaceAssetMap = Object.fromEntries(
     ).join("");
     qfaceGrid.innerHTML = qfacePicker
       .map((qface) => {
-        const src = getQfaceImage(qface);
-        if (src) {
-          return `<button type="button" class="qface-btn" data-qface="${escapeHtml(qface)}"><img class="qface-picker-img" src="${escapeHtml(src)}" alt="${escapeHtml(`[${qface}]`)}" loading="lazy"></button>`;
-        }
-        return `<button type="button" class="qface-btn" data-qface="${escapeHtml(qface)}">[${escapeHtml(qface)}]</button>`;
+        const src = getEmojiImage("qface", qface) || unknownEmoji;
+        return `<button type="button" class="qface-btn" data-qface="${escapeHtml(qface)}"><img class="qface-picker-img" src="${escapeHtml(src)}" alt="${escapeHtml(`[${qface}]`)}" loading="lazy"></button>`;
       })
       .join("");
 
     const insertAtCursor = (value: string) => {
       input.focus();
       const match = value.match(EMOJI_TOKEN_PATTERN);
-      if (match && match[1].trim().toLowerCase() === "qface") {
-        const qfaceName = match[2].trim();
-        const src = getQfaceImage(qfaceName);
+      if (match) {
+        const pack = match[1].trim().toLowerCase();
+        const emojiName = match[2].trim();
+        const src = getEmojiImage(pack, emojiName) || unknownEmoji;
         if (src) {
           const image = document.createElement("img");
           image.className = "qface-inline qface-inline-editor";
           image.src = src;
-          image.alt = `[${qfaceName}]`;
-          image.dataset.token = `[[[qface:${qfaceName}]]]`;
+          image.alt = `[${emojiName}]`;
+          image.dataset.token = `[[[${pack}:${emojiName}]]]`;
           image.setAttribute("loading", "lazy");
           image.setAttribute("contenteditable", "false");
           insertNodeAtCursor(image, input);
@@ -715,9 +681,11 @@ const qfaceAssetMap = Object.fromEntries(
 
   const setupChat = () => {
     const scopedWindow = window as Window & {
-      _qfaceAssets?: Record<string, string>;
+      _emojiAssets?: Record<string, Record<string, string>>;
+      _unknownEmojiUrl?: string;
     };
-    qfaceAssets = scopedWindow._qfaceAssets || {};
+    emojiAssets = scopedWindow._emojiAssets || {};
+    unknownEmoji = scopedWindow._unknownEmojiUrl || "";
 
     const list = document.getElementById("chat-message-list");
     const input = document.getElementById("chat-input") as HTMLElement | null;

@@ -334,23 +334,52 @@ const qfaceAssetMap = Object.fromEntries(
       return `<img class="chat-image" src="${BACKEND_API_BASE}/chat/images/${image}" alt="chat image" loading="lazy">`;
     }
 
-    const emojiMatch = message.plainContent.match(EMOJI_TOKEN_PATTERN);
-    if (emojiMatch) {
-      const pack = emojiMatch[1];
-      const name = emojiMatch[2];
+    const parts: string[] = [];
+    const tokenRegex = /\[\[\[([^:\]]+):([^\]]+)\]\]\]/g;
+    let cursor = 0;
+
+    for (const match of message.plainContent.matchAll(tokenRegex)) {
+      const full = match[0] || "";
+      const pack = match[1] || "";
+      const name = match[2] || "";
+      const start = match.index ?? -1;
+      if (start < 0) continue;
+
+      const plainChunk = message.plainContent.slice(cursor, start);
+      if (plainChunk) {
+        parts.push(`<span>${escapeHtml(plainChunk)}</span>`);
+      }
+
       const safePack = escapeHtml(pack);
       const safeName = escapeHtml(name);
       if (pack === "qface") {
         const src = getQfaceImage(name);
         if (src) {
-          return `<img class="qface-inline" src="${escapeHtml(src)}" alt="${escapeHtml(`[${name}]`)}" title="${safePack}:${safeName}" loading="lazy">`;
+          parts.push(
+            `<img class="qface-inline" src="${escapeHtml(src)}" alt="${escapeHtml(`[${name}]`)}" title="${safePack}:${safeName}" loading="lazy">`,
+          );
+        } else {
+          parts.push(
+            `<span class="qface-token" title="${safePack}:${safeName}">[${safeName}]</span>`,
+          );
         }
-        return `<span class="qface-token" title="${safePack}:${safeName}">[${safeName}]</span>`;
+      } else {
+        parts.push(
+          `<span class="emoji-token" title="${safePack}:${safeName}">${safeName}</span>`,
+        );
       }
-      return `<span class="emoji-token" title="${safePack}:${safeName}">${safeName}</span>`;
+
+      cursor = start + full.length;
     }
 
-    return `<span>${escapeHtml(message.plainContent)}</span>`;
+    const tail = message.plainContent.slice(cursor);
+    if (tail) {
+      parts.push(`<span>${escapeHtml(tail)}</span>`);
+    }
+
+    return parts.length > 0
+      ? parts.join("")
+      : `<span>${escapeHtml(message.plainContent)}</span>`;
   };
 
   const setStatus = (text: string, online: boolean) => {

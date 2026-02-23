@@ -76,7 +76,8 @@ const qfaceAssetMap = Object.fromEntries(
   const SSE_RECONNECT_DELAY_MS = 2500;
   const MAX_CHAT_IMAGE_BYTES = 512 * 1024;
   const MIN_IMAGE_QUALITY = 0.42;
-  const EMOJI_TOKEN_PATTERN = /^\[\[\[([^:\]]+):([^\]]+)\]\]\]$/;
+  const EMOJI_TOKEN_PATTERN =
+    /^\[\[\[\s*([^:\]：]+)\s*[:：]\s*([^\]]+?)\s*\]\]\]$/u;
   const REPLY_PREFIX_PATTERN = /^\[\[\[reply:([^\]]+)\]\]\]\n?/;
   const REACTION_PREFIX_PATTERN = /^\[\[\[react:([^\]]+)\]\]\]\n?/;
   const EMOJI_PICKER = [
@@ -295,8 +296,8 @@ const qfaceAssetMap = Object.fromEntries(
       return `<span>${escapeHtml(value)}</span>`;
     }
 
-    const pack = tokenMatch[1];
-    const name = tokenMatch[2];
+    const pack = tokenMatch[1].trim().toLowerCase();
+    const name = tokenMatch[2].trim();
     if (pack === "qface") {
       const src = getQfaceImage(name);
       if (src) {
@@ -335,13 +336,13 @@ const qfaceAssetMap = Object.fromEntries(
     }
 
     const parts: string[] = [];
-    const tokenRegex = /\[\[\[([^:\]]+):([^\]]+)\]\]\]/g;
+    const tokenRegex = /\[\[\[\s*([^:\]：]+)\s*[:：]\s*([^\]]+?)\s*\]\]\]/gu;
     let cursor = 0;
 
     for (const match of message.plainContent.matchAll(tokenRegex)) {
       const full = match[0] || "";
-      const pack = match[1] || "";
-      const name = match[2] || "";
+      const pack = (match[1] || "").trim().toLowerCase();
+      const name = (match[2] || "").trim();
       const start = match.index ?? -1;
       if (start < 0) continue;
 

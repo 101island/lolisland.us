@@ -164,6 +164,8 @@ const qfaceAssetMap = Object.fromEntries(
     plainContent: string;
     replyToId: string | null;
     reactionToId: string | null;
+    localPending?: boolean;
+    localPreviewUrl?: string | null;
   };
 
   const isNearBottom = (el: HTMLElement) =>
@@ -329,6 +331,10 @@ const qfaceAssetMap = Object.fromEntries(
   };
 
   const renderContent = (message: MessageView) => {
+    if (message.localPending && message.localPreviewUrl) {
+      return `<div class="chat-image-wrap"><img class="chat-image chat-image-pending" src="${escapeHtml(message.localPreviewUrl)}" alt="uploading image" loading="lazy"><span class="chat-image-loading">⏳</span></div>`;
+    }
+
     if (message.kind === "image" && message.imageKey) {
       const image = encodeURIComponent(message.imageKey);
       return `<img class="chat-image" src="${BACKEND_API_BASE}/chat/images/${image}" alt="chat image" loading="lazy">`;
@@ -658,37 +664,91 @@ const qfaceAssetMap = Object.fromEntries(
     let currentMessages: MessageView[] = [];
     let avatarMap = new Map<string, string>();
     let pendingReactionToId: string | null = null;
+    let localSeq = 0;
+    const pendingReactionKeys = new Set<string>();
+    const pendingWithdrawIds = new Set<string>();
 
     const normalizeUserKey = (value: string) => value.trim().toLowerCase();
+
+    const createLocalId = (prefix: string) => {
+      localSeq += 1;
+      return `${prefix}-${Date.now()}-${localSeq}`;
+    };
+
+    const upsertMessage = (message: MessageView) => {
+      const index = currentMessages.findIndex((item) => item.id === message.id);
+      if (index >= 0) {
+        currentMessages[index] = message;
+      } else {
+        currentMessages.push(message);
+      }
+      currentMessages.sort((a, b) => a.createdMs - b.createdMs);
+    };
+
+    const removeMessageById = (id: string) => {
+      currentMessages = currentMessages.filter((item) => item.id !== id);
+    };
 
     const sendReaction = async (messageId: string, value: string) => {
       const token = value.trim();
       if (!token) return;
 
+      const pendingKey = `${messageId}::${token}`;
+      if (pendingReactionKeys.has(pendingKey)) return;
+      pendingReactionKeys.add(pendingKey);
+
       const ownUser = normalizeUserKey(getCurrentUsername());
-      const ownReactions = currentMessages
+      const ownSameTokenReactions = currentMessages
         .filter(
           (item) =>
             item.reactionToId === messageId &&
-            normalizeUserKey(item.username) === ownUser,
+            normalizeUserKey(item.username) === ownUser &&
+            item.plainContent.trim() === token,
         )
         .sort((a, b) => a.createdMs - b.createdMs);
 
-      const latest = ownReactions[ownReactions.length - 1];
-      const isSameReaction = latest?.plainContent.trim() === token;
+      const hadSameToken = ownSameTokenReactions.length > 0;
 
-      for (const reaction of ownReactions) {
-        await withdrawMessage(reaction.id);
-      }
+      ownSameTokenReactions.forEach((reaction) => {
+        removeMessageById(reaction.id);
+      });
+      render(false);
 
-      if (isSameReaction) {
+      try {
+        for (const reaction of ownSameTokenReactions) {
+          if (!reaction.localPending) {
+            await withdrawMessage(reaction.id);
+          }
+        }
+
+        if (hadSameToken) {
+          await refreshFull(false);
+          return;
+        }
+
+        const ownUsername = getCurrentUsername();
+        const tempReaction: MessageView = {
+          id: createLocalId("local-reaction"),
+          username: ownUsername,
+          kind: "text",
+          content: `[[[react:${messageId}]]]\n${token}`,
+          imageKey: null,
+          createdMs: Date.now(),
+          plainContent: token,
+          replyToId: null,
+          reactionToId: messageId,
+          localPending: true,
+        };
+        upsertMessage(tempReaction);
+        render(false);
+
+        const reactionText = `[[[react:${messageId}]]]\n${token}`;
+        await postMessage({ text: reactionText });
         await refreshFull(false);
-        return;
+      } finally {
+        pendingReactionKeys.delete(pendingKey);
+        render(false);
       }
-
-      const reactionText = `[[[react:${messageId}]]]\n${token}`;
-      await postMessage({ text: reactionText });
-      await refreshFull(false);
     };
 
     const emojiTools = setupEmojiPanel(
@@ -849,12 +909,19 @@ const qfaceAssetMap = Object.fromEntries(
 
       if (action === "withdraw") {
         try {
+          pendingWithdrawIds.add(message.id);
+          render(false);
           await withdrawMessage(message.id);
+          pendingWithdrawIds.delete(message.id);
+          removeMessageById(message.id);
+          render(false);
           if (replyingTo?.id === message.id) {
             clearReply();
           }
-          await refreshFull(true);
+          void refreshFull(false);
         } catch (error) {
+          pendingWithdrawIds.delete(message.id);
+          render(false);
           alert(
             error instanceof Error ? error.message : getText("withdrawFailed"),
           );
@@ -865,20 +932,20 @@ const qfaceAssetMap = Object.fromEntries(
     list.addEventListener("click", async (event) => {
       const target = event.target as HTMLElement | null;
       const reactionButton = target?.closest(
-        "button[data-own-reaction-id]",
+        "button[data-reaction-message-id][data-reaction-token]",
       ) as HTMLButtonElement | null;
       if (!reactionButton) return;
 
-      const ownReactionId = reactionButton.getAttribute("data-own-reaction-id");
-      if (!ownReactionId) return;
+      const messageId = reactionButton.getAttribute("data-reaction-message-id");
+      const encodedToken = reactionButton.getAttribute("data-reaction-token");
+      const ownReacted =
+        reactionButton.getAttribute("data-own-reacted") === "1";
+      if (!messageId || !encodedToken || !ownReacted) return;
 
       try {
-        await withdrawMessage(ownReactionId);
-        await refreshFull(false);
+        await sendReaction(messageId, decodeURIComponent(encodedToken));
       } catch (error) {
-        alert(
-          error instanceof Error ? error.message : getText("withdrawFailed"),
-        );
+        alert(error instanceof Error ? error.message : getText("sendFailed"));
       }
     });
 
@@ -942,7 +1009,7 @@ const qfaceAssetMap = Object.fromEntries(
         .filter((item): item is MessageView => Boolean(item.reactionToId))
         .sort((a, b) => a.createdMs - b.createdMs)
         .forEach((reaction) => {
-          const key = `${reaction.reactionToId}::${normalizeUserKey(reaction.username)}`;
+          const key = `${reaction.reactionToId}::${normalizeUserKey(reaction.username)}::${reaction.plainContent.trim()}`;
           latestReactionByUser.set(key, reaction);
         });
 
@@ -987,9 +1054,7 @@ const qfaceAssetMap = Object.fromEntries(
           const normalizedMessage = message.username.trim().toLowerCase();
           const isOwn =
             normalizedOwn.length > 0 && normalizedOwn === normalizedMessage;
-          const bubbleClass = isOwn
-            ? "message-row message-row-own"
-            : "message-row";
+          const bubbleClass = `${isOwn ? "message-row message-row-own" : "message-row"}${pendingWithdrawIds.has(message.id) ? " message-row-withdrawing" : ""}`;
           const avatar = getAvatarByUser(
             message.username,
             ownUsername,
@@ -1007,7 +1072,7 @@ const qfaceAssetMap = Object.fromEntries(
             ? `<div class="message-reactions">${Array.from(reactions.entries())
                 .map(
                   ([token, info]) =>
-                    `<button type="button" class="reaction-pill${info.ownReactionId ? " reaction-pill-own" : ""}" data-reaction-message-id="${escapeHtml(message.id)}" data-reaction-token="${escapeHtml(encodeURIComponent(token))}" ${info.ownReactionId ? `data-own-reaction-id="${escapeHtml(info.ownReactionId)}"` : ""}>${renderReactionValueHtml(token)} <span class="reaction-count">${info.count}</span><span class="reaction-avatars">${info.users
+                    `<button type="button" class="reaction-pill${info.ownReactionId ? " reaction-pill-own" : ""}${pendingReactionKeys.has(`${message.id}::${token}`) ? " reaction-pill-loading" : ""}" data-reaction-message-id="${escapeHtml(message.id)}" data-reaction-token="${escapeHtml(encodeURIComponent(token))}" data-own-reacted="${info.ownReactionId ? "1" : "0"}">${renderReactionValueHtml(token)} <span class="reaction-count">${info.count}</span><span class="reaction-avatars">${info.users
                       .slice(0, 3)
                       .map(
                         (user) =>
@@ -1165,16 +1230,42 @@ const qfaceAssetMap = Object.fromEntries(
       if (!file) return;
 
       uploadBtn.disabled = true;
+      uploadBtn.classList.add("action-btn-loading");
+      const ownUsername = getCurrentUsername();
+      const previewUrl = URL.createObjectURL(file);
+      const pendingImageId = createLocalId("local-image");
+      const pendingImageMessage: MessageView = {
+        id: pendingImageId,
+        username: ownUsername,
+        kind: "image",
+        content: "",
+        imageKey: null,
+        createdMs: Date.now(),
+        plainContent: "",
+        replyToId: replyingTo?.id || null,
+        reactionToId: null,
+        localPending: true,
+        localPreviewUrl: previewUrl,
+      };
+      upsertMessage(pendingImageMessage);
+      render(true);
+
       try {
         const imageKey = await uploadImage(file);
         const text = replyingTo ? `[[[reply:${replyingTo.id}]]]` : undefined;
         await postMessage({ imageKey, text });
         clearReply();
+        removeMessageById(pendingImageId);
+        URL.revokeObjectURL(previewUrl);
         await refreshFull(true);
       } catch (error) {
+        removeMessageById(pendingImageId);
+        URL.revokeObjectURL(previewUrl);
+        render(false);
         alert(error instanceof Error ? error.message : getText("uploadFailed"));
       } finally {
         uploadBtn.disabled = false;
+        uploadBtn.classList.remove("action-btn-loading");
         imageInput.value = "";
       }
     };
@@ -1261,6 +1352,15 @@ const qfaceAssetMap = Object.fromEntries(
     justify-content: flex-start;
   }
 
+  :global(.message-row-withdrawing) {
+    opacity: 0.45;
+    transform: translateX(8px) scale(0.98);
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+    pointer-events: none;
+  }
+
   :global(.message-row-own) {
     justify-content: flex-start;
     flex-direction: row-reverse;
@@ -1338,6 +1438,11 @@ const qfaceAssetMap = Object.fromEntries(
     background: rgba(126, 217, 173, 0.24);
   }
 
+  :global(.reaction-pill-loading) {
+    opacity: 0.65;
+    pointer-events: none;
+  }
+
   :global(.reaction-count) {
     font-weight: 600;
     min-width: 0.65rem;
@@ -1407,6 +1512,30 @@ const qfaceAssetMap = Object.fromEntries(
     width: 100%;
     max-width: 320px;
     border-radius: 10px;
+  }
+
+  :global(.chat-image-wrap) {
+    position: relative;
+  }
+
+  :global(.chat-image-pending) {
+    opacity: 0.76;
+    filter: saturate(0.9);
+  }
+
+  :global(.chat-image-loading) {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(10, 12, 20, 0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.74rem;
+    animation: spin 0.9s linear infinite;
   }
 
   :global(.emoji-token) {
@@ -1502,6 +1631,27 @@ const qfaceAssetMap = Object.fromEntries(
     cursor: pointer;
     padding: 0.45rem 0.72rem;
     font-size: 0.86rem;
+  }
+
+  .action-btn-loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+  }
+
+  .action-btn-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    margin-left: -7px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.26);
+    border-top-color: rgba(255, 255, 255, 0.96);
+    animation: spin 0.8s linear infinite;
   }
 
   .send-btn {
@@ -1634,6 +1784,15 @@ const qfaceAssetMap = Object.fromEntries(
 
   .context-menu-item-danger:hover {
     background: rgba(230, 86, 86, 0.19);
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .hidden {

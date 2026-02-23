@@ -8,7 +8,7 @@ const t = getTranslations(lang);
 const emojiModules = import.meta.glob("../../assets/emoji/*/*.png", {
   eager: true,
   import: "default",
-}) as Record<string, string>;
+}) as Record<string, string | { src?: string }>;
 
 const decodeSafe = (value: string) => {
   try {
@@ -19,9 +19,14 @@ const decodeSafe = (value: string) => {
 };
 
 const emojiAssetMap = Object.entries(emojiModules).reduce(
-  (acc, [path, url]) => {
+  (acc, [path, moduleValue]) => {
     const match = path.match(/\/emoji\/([^/]+)\/([^/]+)\.png$/i);
-    if (!match || typeof url !== "string") return acc;
+    if (!match) return acc;
+
+    const url =
+      typeof moduleValue === "string" ? moduleValue : moduleValue?.src || "";
+    if (!url) return acc;
+
     const pack = decodeSafe(match[1]);
     const name = decodeSafe(match[2]);
     if (!pack || !name) return acc;

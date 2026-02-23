@@ -7,6 +7,16 @@ const t = getTranslations(lang);
 ---
 
 <div id="view-dashboard" class="chat-page fade-in hidden">
+  <button
+    id="dashboard-close-btn"
+    class="dashboard-close-btn"
+    type="button"
+    data-action="close"
+    aria-label="Close chat"
+  >
+    ×
+  </button>
+
   <div id="dashboard-content" class="chat-layout">
     <aside class="chat-sidebar">
       <div class="dashboard-avatar">
@@ -288,6 +298,24 @@ const t = getTranslations(lang);
     padding: 5.5rem 1.25rem 1.5rem;
   }
 
+  .dashboard-close-btn {
+    position: fixed;
+    top: 5.8rem;
+    right: 1.8rem;
+    z-index: 14;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    background: rgba(11, 14, 24, 0.76);
+    color: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    font-size: 1.18rem;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+  }
+
   .chat-layout {
     width: min(1100px, 100%);
     margin: 0 auto;
@@ -465,6 +493,11 @@ const t = getTranslations(lang);
     .chat-layout {
       grid-template-columns: 1fr;
       height: calc(100dvh - 5.5rem);
+    }
+
+    .dashboard-close-btn {
+      top: 4.9rem;
+      right: 0.8rem;
     }
 
     .chat-sidebar {

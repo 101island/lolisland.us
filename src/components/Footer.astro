@@ -4,9 +4,89 @@ import SettingsMenu from "./SettingsMenu.astro";
 
 <footer class="footer">
   <div class="controls">
-    <SettingsMenu/>
+    <div id="footer-chat-entry" class="chat-entry hidden">
+      <button id="chat-entry-btn" class="chat-entry-btn" aria-label="Open chat">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"
+          ></path>
+        </svg>
+      </button>
+    </div>
+    <div id="footer-settings-slot">
+      <SettingsMenu/>
+    </div>
   </div>
 </footer>
+
+<script>
+  document.addEventListener("astro:page-load", () => {
+    const chatEntry = document.getElementById("footer-chat-entry");
+    const chatEntryBtn = document.getElementById("chat-entry-btn");
+    const settingsSlot = document.getElementById("footer-settings-slot");
+    const settingsMenu = document.getElementById("settings-menu");
+
+    if (!chatEntry || !chatEntryBtn || !settingsSlot) return;
+
+    const ensureMarblesDisabled = () => {
+      const marblesToggle = document.getElementById(
+        "marbles-toggle",
+      ) as HTMLInputElement | null;
+      if (marblesToggle) {
+        if (marblesToggle.checked) {
+          marblesToggle.checked = false;
+          marblesToggle.dispatchEvent(new Event("change", { bubbles: true }));
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("toggle-marbles", { detail: { enabled: false } }),
+          );
+        }
+      }
+    };
+
+    const applyFooterState = (view: string) => {
+      const isChatOpen = view === "dashboard";
+      const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+      if (isChatOpen) {
+        chatEntry.classList.add("hidden");
+        settingsSlot.classList.add("hidden");
+        settingsMenu?.classList.remove("active");
+        ensureMarblesDisabled();
+      } else {
+        settingsSlot.classList.remove("hidden");
+        chatEntry.classList.toggle("hidden", !isLoggedIn);
+      }
+    };
+
+    const currentView = window._centralIslandState?.currentView || "title";
+    applyFooterState(currentView);
+
+    window.addEventListener("view-change", (event) => {
+      const detail = (event as CustomEvent<{ view?: string }>).detail;
+      applyFooterState(detail?.view || "title");
+    });
+
+    window.addEventListener("logout-success", () => applyFooterState("title"));
+    window.addEventListener("login-success", () =>
+      applyFooterState("dashboard"),
+    );
+
+    chatEntryBtn.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("open-login"));
+    });
+  });
+</script>
 
 <style>
   .footer {
@@ -20,6 +100,25 @@ import SettingsMenu from "./SettingsMenu.astro";
   .controls {
     display: flex;
     gap: 1rem;
+    align-items: center;
     pointer-events: auto;
+  }
+
+  .chat-entry-btn {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(15, 15, 15, 0.75);
+    color: rgba(255, 255, 255, 0.92);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .hidden {
+    display: none;
   }
 </style>

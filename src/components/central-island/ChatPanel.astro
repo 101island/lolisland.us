@@ -56,17 +56,7 @@ const t = getTranslations(lang);
 
   <div id="chat-emoji-panel" class="emoji-panel hidden">
     <div class="emoji-grid" id="chat-emoji-grid"></div>
-    <div class="token-grid">
-      <button class="token-btn" type="button" data-token="[[[default:smile]]]">
-        [[[default:smile]]]
-      </button>
-      <button class="token-btn" type="button" data-token="[[[default:heart]]]">
-        [[[default:heart]]]
-      </button>
-      <button class="token-btn" type="button" data-token="[[[default:ok]]]">
-        [[[default:ok]]]
-      </button>
-    </div>
+    <div class="qface-grid" id="chat-qface-grid"></div>
   </div>
 
   <div id="chat-context-menu" class="chat-context-menu hidden"></div>
@@ -94,6 +84,51 @@ const t = getTranslations(lang);
     "🎉",
     "✨",
     "🔥",
+  ];
+  const QFACE_PICKER = [
+    "微笑",
+    "撇嘴",
+    "色",
+    "发呆",
+    "得意",
+    "流泪",
+    "害羞",
+    "闭嘴",
+    "睡",
+    "大哭",
+    "尴尬",
+    "发怒",
+    "调皮",
+    "呲牙",
+    "惊讶",
+    "难过",
+    "酷",
+    "抓狂",
+    "吐",
+    "偷笑",
+    "可爱",
+    "白眼",
+    "傲慢",
+    "饥饿",
+    "困",
+    "惊恐",
+    "流汗",
+    "憨笑",
+    "悠闲",
+    "奋斗",
+    "咒骂",
+    "疑问",
+    "嘘",
+    "晕",
+    "折磨",
+    "衰",
+  ];
+  const QUICK_REACTIONS = [
+    { label: "😀", value: "😀" },
+    { label: "🥰", value: "🥰" },
+    { label: "👍", value: "👍" },
+    { label: "[微笑]", value: "[[[qface:微笑]]]" },
+    { label: "[疑问]", value: "[[[qface:疑问]]]" },
   ];
 
   type ChatMessage = {
@@ -134,6 +169,7 @@ const t = getTranslations(lang);
         menuReply: "Reply",
         menuCopy: "Copy",
         menuEmoji: "Paste emoji",
+        menuMoreEmoji: "More",
         menuWithdraw: "Withdraw",
         copyFailed: "Copy failed",
         withdrawFailed: "Withdraw failed",
@@ -152,6 +188,7 @@ const t = getTranslations(lang);
         menuReply: "回复",
         menuCopy: "复制",
         menuEmoji: "贴表情",
+        menuMoreEmoji: "更多",
         menuWithdraw: "撤回",
         copyFailed: "复制失败",
         withdrawFailed: "撤回失败",
@@ -170,6 +207,7 @@ const t = getTranslations(lang);
         menuReply: "回覆",
         menuCopy: "複製",
         menuEmoji: "貼表情",
+        menuMoreEmoji: "更多",
         menuWithdraw: "撤回",
         copyFailed: "複製失敗",
         withdrawFailed: "撤回失敗",
@@ -188,6 +226,7 @@ const t = getTranslations(lang);
         menuReply: "返信",
         menuCopy: "コピー",
         menuEmoji: "絵文字を貼る",
+        menuMoreEmoji: "もっと",
         menuWithdraw: "取り消し",
         copyFailed: "コピー失敗",
         withdrawFailed: "取り消し失敗",
@@ -249,9 +288,14 @@ const t = getTranslations(lang);
 
     const emojiMatch = message.plainContent.match(EMOJI_TOKEN_PATTERN);
     if (emojiMatch) {
-      const pack = escapeHtml(emojiMatch[1]);
-      const name = escapeHtml(emojiMatch[2]);
-      return `<span class="emoji-token" title="${pack}:${name}">${name}</span>`;
+      const pack = emojiMatch[1];
+      const name = emojiMatch[2];
+      const safePack = escapeHtml(pack);
+      const safeName = escapeHtml(name);
+      if (pack === "qface") {
+        return `<span class="qface-token" title="${safePack}:${safeName}">[${safeName}]</span>`;
+      }
+      return `<span class="emoji-token" title="${safePack}:${safeName}">${safeName}</span>`;
     }
 
     return `<span>${escapeHtml(message.plainContent)}</span>`;
@@ -445,12 +489,17 @@ const t = getTranslations(lang);
   const setupEmojiPanel = (input: HTMLTextAreaElement) => {
     const panel = document.getElementById("chat-emoji-panel");
     const grid = document.getElementById("chat-emoji-grid");
+    const qfaceGrid = document.getElementById("chat-qface-grid");
     const toggle = document.getElementById("chat-emoji-toggle");
-    if (!panel || !grid || !toggle) return;
+    if (!panel || !grid || !qfaceGrid || !toggle) return;
 
     grid.innerHTML = EMOJI_PICKER.map(
       (emoji) =>
         `<button type="button" class="emoji-btn" data-emoji="${emoji}">${emoji}</button>`,
+    ).join("");
+    qfaceGrid.innerHTML = QFACE_PICKER.map(
+      (qface) =>
+        `<button type="button" class="qface-btn" data-qface="${qface}">[${qface}]</button>`,
     ).join("");
 
     const insertAtCursor = (value: string) => {
@@ -475,11 +524,11 @@ const t = getTranslations(lang);
       });
     });
 
-    panel.querySelectorAll("[data-token]").forEach((button) => {
+    qfaceGrid.querySelectorAll("[data-qface]").forEach((button) => {
       button.addEventListener("click", () => {
-        const token = button.getAttribute("data-token");
-        if (!token) return;
-        insertAtCursor(token);
+        const qface = button.getAttribute("data-qface");
+        if (!qface) return;
+        insertAtCursor(`[[[qface:${qface}]]]`);
       });
     });
 
@@ -576,12 +625,17 @@ const t = getTranslations(lang);
           : []),
       ];
 
-      contextMenu.innerHTML = actions
+      const quickRow = QUICK_REACTIONS.map(
+        (reaction) =>
+          `<button type="button" class="context-reaction-chip" data-action="react" data-value="${escapeHtml(reaction.value)}">${escapeHtml(reaction.label)}</button>`,
+      ).join("");
+
+      contextMenu.innerHTML = `<div class="context-reaction-row">${quickRow}<button type="button" class="context-reaction-chip context-reaction-chip-more" data-action="more-emoji" title="${escapeHtml(getText("menuMoreEmoji"))}">⋯</button></div><div class="context-menu-divider"></div>${actions
         .map(
           (item) =>
             `<button type="button" class="context-menu-item${item.danger ? " context-menu-item-danger" : ""}" data-action="${item.key}">${escapeHtml(item.label)}</button>`,
         )
-        .join("");
+        .join("")}`;
       contextMenu.setAttribute("data-message-id", message.id);
       contextMenu.setAttribute("data-own", isOwn ? "1" : "0");
       contextMenu.style.left = `${clientX}px`;
@@ -603,8 +657,27 @@ const t = getTranslations(lang);
 
     contextMenu.addEventListener("click", async (event) => {
       const target = event.target as HTMLElement | null;
-      const action = target?.getAttribute("data-action");
+      const actionButton = target?.closest(
+        "button[data-action]",
+      ) as HTMLButtonElement | null;
+      const action = actionButton?.getAttribute("data-action");
       if (!action) return;
+
+      if (action === "react") {
+        const value = actionButton?.getAttribute("data-value");
+        if (!value) return;
+        input.focus();
+        emojiTools.insertAtCursor(value);
+        closeContextMenu();
+        return;
+      }
+
+      if (action === "more-emoji") {
+        input.focus();
+        emojiTools.openPanel();
+        closeContextMenu();
+        return;
+      }
 
       const messageId = contextMenu.getAttribute("data-message-id") || "";
       const message = currentMessages.find((item) => item.id === messageId);
@@ -1046,6 +1119,15 @@ const t = getTranslations(lang);
     background: rgba(255, 255, 255, 0.12);
   }
 
+  :global(.qface-token) {
+    display: inline-block;
+    border-radius: 999px;
+    border: 1px solid rgba(125, 187, 255, 0.32);
+    padding: 0.15rem 0.58rem;
+    background: rgba(120, 183, 255, 0.2);
+    color: rgba(238, 246, 255, 0.96);
+  }
+
   .reply-box {
     display: flex;
     justify-content: space-between;
@@ -1134,6 +1216,15 @@ const t = getTranslations(lang);
     gap: 0.35rem;
   }
 
+  .qface-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    max-height: 160px;
+    overflow-y: auto;
+    padding-right: 0.1rem;
+  }
+
   .emoji-btn {
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(255, 255, 255, 0.07);
@@ -1143,20 +1234,14 @@ const t = getTranslations(lang);
     padding: 0.2rem;
   }
 
-  .token-grid {
-    display: flex;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-  }
-
-  .token-btn {
+  .qface-btn {
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(255, 255, 255, 0.06);
-    border-radius: 999px;
+    border-radius: 8px;
     color: rgba(255, 255, 255, 0.86);
     cursor: pointer;
     font-size: 0.72rem;
-    padding: 0.2rem 0.5rem;
+    padding: 0.28rem 0.4rem;
   }
 
   .chat-context-menu {
@@ -1170,6 +1255,43 @@ const t = getTranslations(lang);
     padding: 0.22rem;
     display: grid;
     gap: 0.12rem;
+  }
+
+  .context-reaction-row {
+    display: flex;
+    align-items: center;
+    gap: 0.24rem;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
+  }
+
+  .context-reaction-chip {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.09);
+    color: rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    padding: 0.2rem 0.44rem;
+    font-size: 0.74rem;
+    line-height: 1.1;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .context-reaction-chip:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .context-reaction-chip-more {
+    margin-left: auto;
+    min-width: 1.75rem;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .context-menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 0.08rem 0 0.12rem;
   }
 
   .context-menu-item {

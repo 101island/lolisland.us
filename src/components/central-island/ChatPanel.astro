@@ -36,13 +36,14 @@ const qfaceAssetMap = Object.fromEntries(
   </div>
 
   <div class="composer-row">
-    <textarea
+    <div
       id="chat-input"
-      class="chat-input"
-      rows="2"
-      maxlength="2000"
-      placeholder={t("chat.placeholder")}
-    ></textarea>
+      class="chat-input chat-input-editor"
+      contenteditable="true"
+      role="textbox"
+      aria-multiline="true"
+      data-placeholder={t("chat.placeholder")}
+    ></div>
 
     <div class="composer-actions">
       <input id="chat-image-input" type="file" accept="image/*" class="hidden">
@@ -68,6 +69,10 @@ const qfaceAssetMap = Object.fromEntries(
 
   <div id="chat-context-menu" class="chat-context-menu hidden"></div>
 </section>
+
+<script is:inline define:vars={{ qfaceAssetMap }}>
+  window._qfaceAssets = qfaceAssetMap;
+</script>
 
 <script>
   import { BACKEND_API_BASE } from "../../config/loginApiBaseUrl";
@@ -568,8 +573,61 @@ const qfaceAssetMap = Object.fromEntries(
     return data.key;
   };
 
+  const getEditorText = (editor: HTMLElement): string => {
+    const walk = (node: Node): string => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent || "";
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return "";
+      }
+
+      const element = node as HTMLElement;
+      if (element.tagName === "IMG" && element.dataset.token) {
+        return element.dataset.token;
+      }
+      if (element.tagName === "BR") {
+        return "\n";
+      }
+
+      let text = "";
+      element.childNodes.forEach((child) => {
+        text += walk(child);
+      });
+
+      if (
+        (element.tagName === "DIV" || element.tagName === "P") &&
+        !text.endsWith("\n")
+      ) {
+        text += "\n";
+      }
+
+      return text;
+    };
+
+    return walk(editor)
+      .replaceAll(/\n{3,}/g, "\n\n")
+      .trimEnd();
+  };
+
+  const insertNodeAtCursor = (node: Node, editor: HTMLElement) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      (editor as unknown as ParentNode).appendChild(node as ChildNode);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
   const setupEmojiPanel = (
-    input: HTMLTextAreaElement,
+    input: HTMLElement,
     onPickToken?: (value: string) => boolean | Promise<boolean>,
     onTogglePanel?: () => void,
   ) => {
@@ -598,13 +656,26 @@ const qfaceAssetMap = Object.fromEntries(
       .join("");
 
     const insertAtCursor = (value: string) => {
-      const start = input.selectionStart;
-      const end = input.selectionEnd;
-      const text = input.value;
-      input.value = `${text.slice(0, start)}${value}${text.slice(end)}`;
-      const next = start + value.length;
-      input.setSelectionRange(next, next);
       input.focus();
+      const match = value.match(EMOJI_TOKEN_PATTERN);
+      if (match && match[1].trim().toLowerCase() === "qface") {
+        const qfaceName = match[2].trim();
+        const src = getQfaceImage(qfaceName);
+        if (src) {
+          const image = document.createElement("img");
+          image.className = "qface-inline qface-inline-editor";
+          image.src = src;
+          image.alt = `[${qfaceName}]`;
+          image.dataset.token = `[[[qface:${qfaceName}]]]`;
+          image.setAttribute("loading", "lazy");
+          image.setAttribute("contenteditable", "false");
+          insertNodeAtCursor(image, input);
+          insertNodeAtCursor(document.createTextNode(" "), input);
+          return;
+        }
+      }
+
+      insertNodeAtCursor(document.createTextNode(value), input);
     };
 
     toggle.addEventListener("click", () => {
@@ -643,18 +714,13 @@ const qfaceAssetMap = Object.fromEntries(
   };
 
   const setupChat = () => {
-    const shell = document.querySelector(".chat-shell") as HTMLElement | null;
-    const rawQfaceAssets = shell?.dataset.qfaceAssets || "{}";
-    try {
-      qfaceAssets = JSON.parse(rawQfaceAssets) as Record<string, string>;
-    } catch {
-      qfaceAssets = {};
-    }
+    const scopedWindow = window as Window & {
+      _qfaceAssets?: Record<string, string>;
+    };
+    qfaceAssets = scopedWindow._qfaceAssets || {};
 
     const list = document.getElementById("chat-message-list");
-    const input = document.getElementById(
-      "chat-input",
-    ) as HTMLTextAreaElement | null;
+    const input = document.getElementById("chat-input") as HTMLElement | null;
     const sendBtn = document.getElementById(
       "chat-send-btn",
     ) as HTMLButtonElement | null;
@@ -1214,7 +1280,7 @@ const qfaceAssetMap = Object.fromEntries(
 
     sendBtn.onclick = async () => {
       pendingReactionToId = null;
-      const rawText = input.value.trim();
+      const rawText = getEditorText(input).trim();
       if (!rawText) return;
 
       const defaultText = sendBtn.dataset.defaultText || getText("send");
@@ -1226,7 +1292,7 @@ const qfaceAssetMap = Object.fromEntries(
           ? `[[[reply:${replyingTo.id}]]]\n${rawText}`
           : rawText;
         await postMessage({ text });
-        input.value = "";
+        input.innerHTML = "";
         clearReply();
         await refreshFull(true);
       } catch (error) {
@@ -1237,12 +1303,12 @@ const qfaceAssetMap = Object.fromEntries(
       }
     };
 
-    input.onkeydown = (event) => {
+    input.addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         sendBtn.click();
       }
-    };
+    });
 
     uploadBtn.onclick = () => {
       pendingReactionToId = null;
@@ -1575,6 +1641,12 @@ const qfaceAssetMap = Object.fromEntries(
     height: 18px;
   }
 
+  :global(.qface-inline-editor) {
+    width: 24px;
+    height: 24px;
+    vertical-align: text-bottom;
+  }
+
   .reply-box {
     display: flex;
     justify-content: space-between;
@@ -1623,6 +1695,18 @@ const qfaceAssetMap = Object.fromEntries(
     padding: 0.55rem 0.65rem;
     resize: none;
     min-height: 64px;
+  }
+
+  .chat-input-editor {
+    white-space: pre-wrap;
+    outline: none;
+    overflow-y: auto;
+    max-height: 180px;
+  }
+
+  .chat-input-editor:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.45);
   }
 
   .composer-actions {

@@ -71,6 +71,7 @@ const t = getTranslations(lang);
   const MIN_IMAGE_QUALITY = 0.42;
   const EMOJI_TOKEN_PATTERN = /^\[\[\[([^:\]]+):([^\]]+)\]\]\]$/;
   const REPLY_PREFIX_PATTERN = /^\[\[\[reply:([^\]]+)\]\]\]\n?/;
+  const REACTION_PREFIX_PATTERN = /^\[\[\[react:([^\]]+)\]\]\]\n?/;
   const EMOJI_PICKER = [
     "😀",
     "😆",
@@ -148,6 +149,7 @@ const t = getTranslations(lang);
   type MessageView = ChatMessage & {
     plainContent: string;
     replyToId: string | null;
+    reactionToId: string | null;
   };
 
   const isNearBottom = (el: HTMLElement) =>
@@ -252,16 +254,36 @@ const t = getTranslations(lang);
   };
 
   const parseMessage = (message: ChatMessage): MessageView => {
-    const match = message.content.match(REPLY_PREFIX_PATTERN);
-    const replyToId = match?.[1] || null;
-    const plainContent = match
+    const reactionMatch = message.content.match(REACTION_PREFIX_PATTERN);
+    if (reactionMatch) {
+      return {
+        ...message,
+        plainContent: message.content.replace(REACTION_PREFIX_PATTERN, ""),
+        replyToId: null,
+        reactionToId: reactionMatch[1] || null,
+      };
+    }
+
+    const replyMatch = message.content.match(REPLY_PREFIX_PATTERN);
+    const replyToId = replyMatch?.[1] || null;
+    const plainContent = replyMatch
       ? message.content.replace(REPLY_PREFIX_PATTERN, "")
       : message.content;
     return {
       ...message,
       plainContent,
       replyToId,
+      reactionToId: null,
     };
+  };
+
+  const formatReactionLabel = (value: string) => {
+    const tokenMatch = value.match(EMOJI_TOKEN_PATTERN);
+    if (!tokenMatch) return value;
+    if (tokenMatch[1] === "qface") {
+      return `[${tokenMatch[2]}]`;
+    }
+    return tokenMatch[2];
   };
 
   const getAvatarByUser = (
@@ -486,7 +508,11 @@ const t = getTranslations(lang);
     return data.key;
   };
 
-  const setupEmojiPanel = (input: HTMLTextAreaElement) => {
+  const setupEmojiPanel = (
+    input: HTMLTextAreaElement,
+    onPickToken?: (value: string) => boolean | Promise<boolean>,
+    onTogglePanel?: () => void,
+  ) => {
     const panel = document.getElementById("chat-emoji-panel");
     const grid = document.getElementById("chat-emoji-grid");
     const qfaceGrid = document.getElementById("chat-qface-grid");
@@ -513,14 +539,22 @@ const t = getTranslations(lang);
     };
 
     toggle.addEventListener("click", () => {
+      onTogglePanel?.();
       panel.classList.toggle("hidden");
     });
+
+    const applyToken = async (value: string) => {
+      const consumed = onPickToken ? await onPickToken(value) : false;
+      if (!consumed) {
+        insertAtCursor(value);
+      }
+    };
 
     grid.querySelectorAll("[data-emoji]").forEach((button) => {
       button.addEventListener("click", () => {
         const emoji = button.getAttribute("data-emoji");
         if (!emoji) return;
-        insertAtCursor(emoji);
+        void applyToken(emoji);
       });
     });
 
@@ -528,13 +562,14 @@ const t = getTranslations(lang);
       button.addEventListener("click", () => {
         const qface = button.getAttribute("data-qface");
         if (!qface) return;
-        insertAtCursor(`[[[qface:${qface}]]]`);
+        void applyToken(`[[[qface:${qface}]]]`);
       });
     });
 
     return {
       insertAtCursor,
       openPanel: () => panel.classList.remove("hidden"),
+      closePanel: () => panel.classList.add("hidden"),
     };
   };
 
@@ -572,12 +607,38 @@ const t = getTranslations(lang);
       return;
     }
 
-    const emojiTools = setupEmojiPanel(input);
-    if (!emojiTools) return;
-
     let replyingTo: MessageView | null = null;
     let currentMessages: MessageView[] = [];
     let avatarMap = new Map<string, string>();
+    let pendingReactionToId: string | null = null;
+
+    const sendReaction = async (messageId: string, value: string) => {
+      const reactionText = `[[[react:${messageId}]]]\n${value}`;
+      await postMessage({ text: reactionText });
+      await refreshFull(false);
+    };
+
+    const emojiTools = setupEmojiPanel(
+      input,
+      async (value) => {
+        if (!pendingReactionToId) {
+          return false;
+        }
+        const targetId = pendingReactionToId;
+        pendingReactionToId = null;
+        emojiTools?.closePanel();
+        try {
+          await sendReaction(targetId, value);
+        } catch (error) {
+          alert(error instanceof Error ? error.message : getText("sendFailed"));
+        }
+        return true;
+      },
+      () => {
+        pendingReactionToId = null;
+      },
+    );
+    if (!emojiTools) return;
 
     const closeContextMenu = () => {
       contextMenu.classList.add("hidden");
@@ -663,23 +724,28 @@ const t = getTranslations(lang);
       const action = actionButton?.getAttribute("data-action");
       if (!action) return;
 
+      const messageId = contextMenu.getAttribute("data-message-id") || "";
+
       if (action === "react") {
         const value = actionButton?.getAttribute("data-value");
-        if (!value) return;
-        input.focus();
-        emojiTools.insertAtCursor(value);
+        if (!value || !messageId) return;
+        try {
+          await sendReaction(messageId, value);
+        } catch (error) {
+          alert(error instanceof Error ? error.message : getText("sendFailed"));
+        }
         closeContextMenu();
         return;
       }
 
       if (action === "more-emoji") {
-        input.focus();
+        if (!messageId) return;
+        pendingReactionToId = messageId;
         emojiTools.openPanel();
         closeContextMenu();
         return;
       }
 
-      const messageId = contextMenu.getAttribute("data-message-id") || "";
       const message = currentMessages.find((item) => item.id === messageId);
       closeContextMenu();
       if (!message) return;
@@ -703,9 +769,8 @@ const t = getTranslations(lang);
       }
 
       if (action === "emoji") {
-        input.focus();
+        pendingReactionToId = message.id;
         emojiTools.openPanel();
-        emojiTools.insertAtCursor("[[[default:smile]]]");
         return;
       }
 
@@ -763,8 +828,34 @@ const t = getTranslations(lang);
       const ownUsername = getCurrentUsername();
       const ownAvatar = localStorage.getItem("avatar") || "";
       const map = new Map(currentMessages.map((item) => [item.id, item]));
+      const visibleMessages = currentMessages.filter(
+        (item) => !item.reactionToId,
+      );
+      const reactionBuckets = new Map<
+        string,
+        Map<string, { count: number; own: boolean }>
+      >();
 
-      list.innerHTML = currentMessages
+      currentMessages
+        .filter((item) => item.reactionToId)
+        .forEach((reaction) => {
+          if (!reaction.reactionToId) return;
+          const token = reaction.plainContent.trim();
+          if (!token) return;
+          if (!reactionBuckets.has(reaction.reactionToId)) {
+            reactionBuckets.set(reaction.reactionToId, new Map());
+          }
+          const tokenMap = reactionBuckets.get(reaction.reactionToId);
+          if (!tokenMap) return;
+          const bucket = tokenMap.get(token) || { count: 0, own: false };
+          bucket.count += 1;
+          bucket.own ||=
+            reaction.username.trim().toLowerCase() ===
+            ownUsername.trim().toLowerCase();
+          tokenMap.set(token, bucket);
+        });
+
+      list.innerHTML = visibleMessages
         .map((message) => {
           const normalizedOwn = ownUsername.trim().toLowerCase();
           const normalizedMessage = message.username.trim().toLowerCase();
@@ -785,8 +876,17 @@ const t = getTranslations(lang);
           const replyBlock = replyTarget
             ? `<div class="reply-quote"><p>${escapeHtml(replyTarget.username)}</p><span>${escapeHtml(previewText(replyTarget.plainContent || "[image]"))}</span></div>`
             : "";
+          const reactions = reactionBuckets.get(message.id);
+          const reactionBlock = reactions
+            ? `<div class="message-reactions">${Array.from(reactions.entries())
+                .map(
+                  ([token, info]) =>
+                    `<span class="reaction-pill${info.own ? " reaction-pill-own" : ""}">${escapeHtml(formatReactionLabel(token))} ${info.count}</span>`,
+                )
+                .join("")}</div>`
+            : "";
 
-          return `<li class="${bubbleClass}" data-id="${escapeHtml(message.id)}"><img class="message-avatar" src="${avatar}" alt="${escapeHtml(message.username)}" loading="lazy"><div class="message-bubble"><div class="message-head"><span>${escapeHtml(message.username)}</span><time>${new Date(message.createdMs).toLocaleTimeString()}</time></div>${replyBlock}<div class="message-body">${renderContent(message)}</div><div class="message-foot"><button type="button" class="reply-btn" data-reply-id="${escapeHtml(message.id)}">${escapeHtml(getText("menuReply"))}</button></div></div></li>`;
+          return `<li class="${bubbleClass}" data-id="${escapeHtml(message.id)}"><img class="message-avatar" src="${avatar}" alt="${escapeHtml(message.username)}" loading="lazy"><div class="message-bubble"><div class="message-head"><span>${escapeHtml(message.username)}</span><time>${new Date(message.createdMs).toLocaleTimeString()}</time></div>${replyBlock}<div class="message-body">${renderContent(message)}</div>${reactionBlock}<div class="message-foot"><button type="button" class="reply-btn" data-reply-id="${escapeHtml(message.id)}">${escapeHtml(getText("menuReply"))}</button></div></div></li>`;
         })
         .join("");
 
@@ -890,6 +990,7 @@ const t = getTranslations(lang);
     void refreshFull(true).then(() => connectSse());
 
     sendBtn.onclick = async () => {
+      pendingReactionToId = null;
       const rawText = input.value.trim();
       if (!rawText) return;
 
@@ -921,6 +1022,7 @@ const t = getTranslations(lang);
     };
 
     uploadBtn.onclick = () => {
+      pendingReactionToId = null;
       imageInput.click();
     };
 
@@ -1074,6 +1176,28 @@ const t = getTranslations(lang);
     margin-top: 0.28rem;
     display: flex;
     justify-content: flex-end;
+  }
+
+  :global(.message-reactions) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin-top: 0.36rem;
+  }
+
+  :global(.reaction-pill) {
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.93);
+    font-size: 0.72rem;
+    padding: 0.12rem 0.42rem;
+    line-height: 1.3;
+  }
+
+  :global(.reaction-pill-own) {
+    border-color: rgba(126, 217, 173, 0.48);
+    background: rgba(126, 217, 173, 0.24);
   }
 
   :global(.reply-btn) {

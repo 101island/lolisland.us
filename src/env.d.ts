@@ -28,4 +28,5 @@ interface Window {
     isLoggedIn: boolean;
   };
   _chatPanelPollTimer?: number | null;
+  _chatPanelEventSource?: EventSource | null;
 }

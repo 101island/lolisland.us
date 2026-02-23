@@ -304,6 +304,7 @@ const t = getTranslations(lang);
       0 18px 60px rgba(0, 0, 0, 0.45);
     display: grid;
     grid-template-columns: 240px 1fr;
+    min-height: 0;
     overflow: hidden;
   }
 
@@ -320,7 +321,7 @@ const t = getTranslations(lang);
   .dashboard-avatar {
     width: 88px;
     height: 88px;
-    border-radius: 24px;
+    border-radius: 50%;
     overflow: hidden;
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
@@ -353,8 +354,15 @@ const t = getTranslations(lang);
   }
 
   .chat-main {
+    display: flex;
     height: 100%;
+    min-height: 0;
     padding: 0.9rem;
+  }
+
+  .chat-main :global(.chat-shell) {
+    flex: 1;
+    min-height: 0;
   }
 
   .cropper-shell,
@@ -470,7 +478,7 @@ const t = getTranslations(lang);
     .dashboard-avatar {
       width: 54px;
       height: 54px;
-      border-radius: 14px;
+      border-radius: 50%;
     }
 
     .dashboard-username {

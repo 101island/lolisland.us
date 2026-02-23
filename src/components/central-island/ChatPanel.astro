@@ -74,7 +74,7 @@ const t = getTranslations(lang);
   import { BACKEND_API_BASE } from "../../config/loginApiBaseUrl";
 
   const CHAT_LIMIT = 50;
-  const CHAT_POLL_INTERVAL_MS = 3000;
+  const SSE_RECONNECT_DELAY_MS = 2500;
   const EMOJI_TOKEN_PATTERN = /^\[\[\[([^:\]]+):([^\]]+)\]\]\]$/;
   const REPLY_PREFIX_PATTERN = /^\[\[\[reply:([^\]]+)\]\]\]\n?/;
   const EMOJI_PICKER = [
@@ -110,6 +110,9 @@ const t = getTranslations(lang);
     plainContent: string;
     replyToId: string | null;
   };
+
+  const isNearBottom = (el: HTMLElement) =>
+    el.scrollHeight - el.scrollTop - el.clientHeight < 72;
 
   const getLanguage = () => document.documentElement.lang || "en";
 
@@ -251,6 +254,37 @@ const t = getTranslations(lang);
     return token ? `Bearer ${token}` : null;
   };
 
+  const decodeJwtUserId = (token: string) => {
+    try {
+      const payloadPart = token.split(".")[1] || "";
+      const normalized = payloadPart.replaceAll("-", "+").replaceAll("_", "/");
+      const padded = normalized.padEnd(
+        normalized.length + ((4 - (normalized.length % 4 || 4)) % 4),
+        "=",
+      );
+      const payload = JSON.parse(atob(padded)) as { user_id?: string };
+      return payload.user_id || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const getCurrentUsername = () => {
+    const cached = (localStorage.getItem("username") || "").trim();
+    const token = localStorage.getItem("token");
+    if (!token) return cached || "";
+
+    const tokenUserId = decodeJwtUserId(token).trim();
+    if (tokenUserId.length > 0) {
+      if (cached !== tokenUserId) {
+        localStorage.setItem("username", tokenUserId);
+      }
+      return tokenUserId;
+    }
+
+    return cached || "";
+  };
+
   const postMessage = async (payload: { text?: string; imageKey?: string }) => {
     const auth = getAuthHeader();
     if (!auth) throw new Error(getText("needLogin"));
@@ -384,14 +418,17 @@ const t = getTranslations(lang);
 
     replyCancelBtn.addEventListener("click", clearReply);
 
-    const render = () => {
-      const ownUsername = localStorage.getItem("username") || "";
+    const render = (stickToBottom: boolean) => {
+      const ownUsername = getCurrentUsername();
       const ownAvatar = localStorage.getItem("avatar") || "";
       const map = new Map(currentMessages.map((item) => [item.id, item]));
 
       list.innerHTML = currentMessages
         .map((message) => {
-          const isOwn = ownUsername === message.username;
+          const normalizedOwn = ownUsername.trim().toLowerCase();
+          const normalizedMessage = message.username.trim().toLowerCase();
+          const isOwn =
+            normalizedOwn.length > 0 && normalizedOwn === normalizedMessage;
           const bubbleClass = isOwn
             ? "message-row message-row-own"
             : "message-row";
@@ -420,10 +457,13 @@ const t = getTranslations(lang);
         });
       });
 
-      list.scrollTop = list.scrollHeight;
+      if (stickToBottom) {
+        list.scrollTop = list.scrollHeight;
+      }
     };
 
-    const refresh = async () => {
+    const refreshFull = async (forceStick = false) => {
+      const stickToBottom = forceStick || isNearBottom(list);
       try {
         const [messages, users] = await Promise.all([
           fetchMessages(),
@@ -431,24 +471,82 @@ const t = getTranslations(lang);
         ]);
         avatarMap = users;
         currentMessages = messages.map(parseMessage);
-        render();
+        render(stickToBottom);
         setStatus(getText("online"), true);
       } catch {
         setStatus(getText("offline"), false);
       }
     };
 
-    if (window._chatPanelPollTimer) {
-      window.clearInterval(window._chatPanelPollTimer);
-      window._chatPanelPollTimer = null;
-    }
+    const mergeMessages = (incoming: ChatMessage[]) => {
+      if (incoming.length === 0) return;
+      const stickToBottom = isNearBottom(list);
+      const map = new Map(currentMessages.map((item) => [item.id, item]));
+      incoming.forEach((message) => {
+        map.set(message.id, parseMessage(message));
+      });
+      currentMessages = Array.from(map.values()).sort(
+        (a, b) => a.createdMs - b.createdMs,
+      );
+      render(stickToBottom);
+      setStatus(getText("online"), true);
+    };
 
+    const closeRealtime = () => {
+      if (window._chatPanelEventSource) {
+        window._chatPanelEventSource.close();
+        window._chatPanelEventSource = null;
+      }
+      if (window._chatPanelPollTimer) {
+        window.clearTimeout(window._chatPanelPollTimer);
+        window._chatPanelPollTimer = null;
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (window._chatPanelPollTimer) {
+        window.clearTimeout(window._chatPanelPollTimer);
+      }
+      window._chatPanelPollTimer = window.setTimeout(() => {
+        void connectSse();
+      }, SSE_RECONNECT_DELAY_MS);
+    };
+
+    const connectSse = async () => {
+      closeRealtime();
+      const since = currentMessages.length
+        ? currentMessages[currentMessages.length - 1].createdMs
+        : 0;
+      const source = new EventSource(
+        `${BACKEND_API_BASE}/chat/stream?since=${since}`,
+      );
+      window._chatPanelEventSource = source;
+
+      source.addEventListener("ready", () => {
+        setStatus(getText("online"), true);
+      });
+
+      source.addEventListener("messages", (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent).data) as {
+            messages?: ChatMessage[];
+          };
+          mergeMessages(payload.messages || []);
+        } catch {
+          setStatus(getText("offline"), false);
+        }
+      });
+
+      source.onerror = () => {
+        setStatus(getText("offline"), false);
+        closeRealtime();
+        scheduleReconnect();
+      };
+    };
+
+    closeRealtime();
     setStatus(getText("connecting"), false);
-    refresh();
-    window._chatPanelPollTimer = window.setInterval(
-      refresh,
-      CHAT_POLL_INTERVAL_MS,
-    );
+    void refreshFull(true).then(() => connectSse());
 
     sendBtn.onclick = async () => {
       const rawText = input.value.trim();
@@ -465,7 +563,7 @@ const t = getTranslations(lang);
         await postMessage({ text });
         input.value = "";
         clearReply();
-        await refresh();
+        await refreshFull(true);
       } catch (error) {
         alert(error instanceof Error ? error.message : getText("sendFailed"));
       } finally {
@@ -495,7 +593,7 @@ const t = getTranslations(lang);
         const text = replyingTo ? `[[[reply:${replyingTo.id}]]]` : undefined;
         await postMessage({ imageKey, text });
         clearReply();
-        await refresh();
+        await refreshFull(true);
       } catch (error) {
         alert(error instanceof Error ? error.message : getText("uploadFailed"));
       } finally {
@@ -507,8 +605,12 @@ const t = getTranslations(lang);
 
   document.addEventListener("astro:page-load", setupChat);
   window.addEventListener("logout-success", () => {
+    if (window._chatPanelEventSource) {
+      window._chatPanelEventSource.close();
+      window._chatPanelEventSource = null;
+    }
     if (window._chatPanelPollTimer) {
-      window.clearInterval(window._chatPanelPollTimer);
+      window.clearTimeout(window._chatPanelPollTimer);
       window._chatPanelPollTimer = null;
     }
   });
@@ -517,6 +619,7 @@ const t = getTranslations(lang);
 <style>
   .chat-shell {
     height: 100%;
+    min-height: 0;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: linear-gradient(
@@ -564,24 +667,29 @@ const t = getTranslations(lang);
     padding: 0.2rem;
     list-style: none;
     overflow-y: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
   }
 
-  .message-row {
+  :global(.message-row) {
     display: flex;
+    width: 100%;
+    max-width: 100%;
     align-items: flex-end;
     gap: 0.45rem;
     justify-content: flex-start;
   }
 
-  .message-row-own {
-    justify-content: flex-end;
+  :global(.message-row-own) {
+    justify-content: flex-start;
     flex-direction: row-reverse;
   }
 
-  .message-avatar {
+  :global(.message-avatar) {
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -590,7 +698,7 @@ const t = getTranslations(lang);
     flex: 0 0 auto;
   }
 
-  .message-bubble {
+  :global(.message-bubble) {
     max-width: min(74%, 560px);
     border-radius: 14px 14px 14px 5px;
     border: 1px solid rgba(255, 255, 255, 0.16);
@@ -599,13 +707,13 @@ const t = getTranslations(lang);
     text-align: left;
   }
 
-  .message-row-own .message-bubble {
+  :global(.message-row-own .message-bubble) {
     border-radius: 14px 14px 5px 14px;
     border-color: rgba(129, 215, 175, 0.42);
     background: rgba(122, 208, 167, 0.24);
   }
 
-  .message-head {
+  :global(.message-head) {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -615,19 +723,19 @@ const t = getTranslations(lang);
     margin-bottom: 0.2rem;
   }
 
-  .message-body {
+  :global(.message-body) {
     color: rgba(255, 255, 255, 0.95);
     font-size: 0.92rem;
     word-break: break-word;
   }
 
-  .message-foot {
+  :global(.message-foot) {
     margin-top: 0.28rem;
     display: flex;
     justify-content: flex-end;
   }
 
-  .reply-btn {
+  :global(.reply-btn) {
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.64);
@@ -637,32 +745,32 @@ const t = getTranslations(lang);
     text-transform: lowercase;
   }
 
-  .reply-quote {
+  :global(.reply-quote) {
     border-left: 2px solid rgba(255, 255, 255, 0.28);
     padding-left: 0.45rem;
     margin-bottom: 0.35rem;
   }
 
-  .reply-quote p {
+  :global(.reply-quote p) {
     margin: 0;
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.82);
     font-weight: 600;
   }
 
-  .reply-quote span {
+  :global(.reply-quote span) {
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.66);
   }
 
-  .chat-image {
+  :global(.chat-image) {
     display: block;
     width: 100%;
     max-width: 320px;
     border-radius: 10px;
   }
 
-  .emoji-token {
+  :global(.emoji-token) {
     display: inline-block;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.22);
@@ -793,7 +901,7 @@ const t = getTranslations(lang);
       padding: 0.55rem;
     }
 
-    .message-bubble {
+    :global(.message-bubble) {
       max-width: 84%;
     }
 

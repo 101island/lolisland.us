@@ -1,8 +1,36 @@
 ---
+import unknownEmojiUrl from "../../assets/emoji/unknown.svg?url";
 import { getLangFromUrl, getTranslations } from "../../i18n/utils";
 
 const lang = getLangFromUrl(Astro.url);
 const t = getTranslations(lang);
+
+const emojiModules = import.meta.glob("../../assets/emoji/*/*.png", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+
+const decodeSafe = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const emojiAssetMap = Object.entries(emojiModules).reduce(
+  (acc, [path, url]) => {
+    const match = path.match(/\/emoji\/([^/]+)\/([^/]+)\.png$/i);
+    if (!match || typeof url !== "string") return acc;
+    const pack = decodeSafe(match[1]);
+    const name = decodeSafe(match[2]);
+    if (!pack || !name) return acc;
+    if (!acc[pack]) acc[pack] = {};
+    acc[pack][name] = url;
+    return acc;
+  },
+  {} as Record<string, Record<string, string>>,
+);
 ---
 
 <section class="chat-shell">
@@ -57,8 +85,12 @@ const t = getTranslations(lang);
   <div id="chat-context-menu" class="chat-context-menu hidden"></div>
 </section>
 
+<script is:inline define:vars={{ emojiAssetMap, unknownEmojiUrl }}>
+  window._emojiAssets = emojiAssetMap;
+  window._unknownEmojiUrl = unknownEmojiUrl;
+</script>
+
 <script>
-  import unknownEmojiUrl from "../../assets/emoji/unknown.svg?url";
   import { BACKEND_API_BASE } from "../../config/loginApiBaseUrl";
 
   const CHAT_LIMIT = 50;
@@ -241,13 +273,20 @@ const t = getTranslations(lang);
     };
   };
 
-  const getEmojiKey = (pack: string, name: string) => `${pack}:${name}`;
+  const normalizePack = (value: string) => value.trim().toLowerCase();
+  const normalizeEmojiName = (value: string) => value.trim().normalize("NFC");
+  const getEmojiKey = (pack: string, name: string) =>
+    `${normalizePack(pack)}:${normalizeEmojiName(name)}`;
 
   const hasEmoji = (pack: string, name: string) =>
     availableEmojiKeys.has(getEmojiKey(pack, name));
 
-  const getEmojiImage = (pack: string, name: string) =>
-    hasEmoji(pack, name) ? emojiAssets[pack]?.[name] || "" : "";
+  const getEmojiImage = (pack: string, name: string) => {
+    const normalizedPack = normalizePack(pack);
+    const normalizedName = normalizeEmojiName(name);
+    if (!hasEmoji(normalizedPack, normalizedName)) return "";
+    return emojiAssets[normalizedPack]?.[normalizedName] || "";
+  };
 
   const renderEmojiTokenImage = (
     pack: string,
@@ -652,38 +691,30 @@ const t = getTranslations(lang);
   };
 
   const setupChat = () => {
-    const emojiModules = import.meta.glob("../../assets/emoji/*/*.png", {
-      eager: true,
-      import: "default",
-    }) as Record<string, string>;
-
-    const decodeSafe = (value: string) => {
-      try {
-        return decodeURIComponent(value);
-      } catch {
-        return value;
-      }
+    const scopedWindow = window as Window & {
+      _emojiAssets?: Record<string, Record<string, string>>;
+      _unknownEmojiUrl?: string;
     };
 
-    emojiAssets = Object.entries(emojiModules).reduce(
-      (acc, [path, url]) => {
-        const match = path.match(/\/emoji\/([^/]+)\/([^/]+)\.png$/i);
-        if (!match || typeof url !== "string") return acc;
-        const pack = decodeSafe(match[1]);
-        const name = decodeSafe(match[2]);
-        if (!pack || !name) return acc;
-        if (!acc[pack]) acc[pack] = {};
-        acc[pack][name] = url;
+    emojiAssets = Object.entries(scopedWindow._emojiAssets || {}).reduce(
+      (acc, [pack, entries]) => {
+        const normalizedPack = normalizePack(pack);
+        if (!acc[normalizedPack]) acc[normalizedPack] = {};
+        Object.entries(entries || {}).forEach(([name, url]) => {
+          const normalizedName = normalizeEmojiName(name);
+          acc[normalizedPack][normalizedName] = url;
+        });
         return acc;
       },
       {} as Record<string, Record<string, string>>,
     );
+
     availableEmojiKeys = new Set(
       Object.entries(emojiAssets).flatMap(([pack, entries]) =>
         Object.keys(entries).map((name) => getEmojiKey(pack, name)),
       ),
     );
-    unknownEmoji = unknownEmojiUrl;
+    unknownEmoji = scopedWindow._unknownEmojiUrl || "";
 
     const list = document.getElementById("chat-message-list");
     const input = document.getElementById("chat-input") as HTMLElement | null;
